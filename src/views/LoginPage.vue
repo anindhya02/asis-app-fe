@@ -6,6 +6,12 @@ import { useAuthStore } from '@/stores/auth.store'
 const router = useRouter()
 const authStore = useAuthStore()
 
+function getHomeRouteByRole(role?: string | null) {
+  const r = (role || '').toUpperCase()
+  if (r === 'ADMIN') return '/users'
+  if (r === 'PENGURUS') return '/income-transactions'
+}
+
 const username = ref('')
 const password = ref('')
 const errors = ref<{ username?: string; password?: string }>({})
@@ -36,7 +42,8 @@ const handleLogin = async (e: Event) => {
 
   try {
     await authStore.login({ username: username.value, password: password.value })
-    router.push('/users')
+    const role = authStore.user?.role ?? null
+    router.push(getHomeRouteByRole(role))
   } catch {
     // error sudah ditangani di store
   } finally {

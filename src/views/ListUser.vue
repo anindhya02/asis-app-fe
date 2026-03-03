@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.store'
-import { useAuthStore } from '@/stores/auth.store'
-import { useRouter } from 'vue-router'
 import type { User } from '@/interfaces/user.interface'
+import AsisSidebar from '@/components/AsisSidebar.vue'
 import CreateUser from './CreateUser.vue'
 import ViewUser from './ViewUser.vue'
 
 const userStore = useUserStore()
-const authStore = useAuthStore()
-const router = useRouter()
 
 const searchQuery = ref('')
 const selectedRole = ref('')
@@ -84,51 +81,11 @@ function closeView() {
 async function onUserSaved() {
   await userStore.fetchUsers()
 }
-
-function handleLogout() {
-  authStore.logout()
-  router.push('/auth/login')
-}
 </script>
 
 <template>
   <div class="layout">
-    <!-- ── SIDEBAR ── -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <span class="logo-text">ASIS</span>
-      </div>
-
-      <nav class="sidebar-nav">
-        <button class="nav-item active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          User Management
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <div class="user-meta">
-            <span class="user-name">Admin</span>
-            <span class="user-role-label">Administrator</span>
-          </div>
-        </div>
-        <button class="logout-btn" @click="handleLogout" title="Logout">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </button>
-      </div>
-    </aside>
+    <AsisSidebar />
 
     <!-- ── MAIN ── -->
     <main class="main">
@@ -275,9 +232,11 @@ function handleLogout() {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .layout {
-  display: flex; height: 100vh;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #f5f6f7; color: #111827;
+  display: flex;
+  height: 100vh;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f5f5;
+  color: #111827;
 }
 
 .sidebar {

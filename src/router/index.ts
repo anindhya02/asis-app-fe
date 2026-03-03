@@ -2,14 +2,25 @@ import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
 import { isAdmin } from "@/lib/rbac"
 
+function getHomeRouteByRole(role?: string | null) {
+  const r = (role || "").toUpperCase()
+
+  if (r === "ADMIN") return "/users"
+  if (r === "PENGURUS") return "/income-transactions"
+
+  return "/income-transactions"
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",
-      name: "home",
-      component: () => import("@/views/HomeView.vue"),
-      meta: { requiresAuth: true },
+      redirect: () => {
+        const user = getCurrentUser()
+        if (!user) return "/auth/login"
+        return getHomeRouteByRole(user.role)
+      },
     },
     {
       path: "/auth/login",
@@ -35,6 +46,18 @@ const router = createRouter({
       component: () => import("@/views/ViewUser.vue"),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
+    {
+      path: "/income-transactions/create",
+      name: "income-transaction-create",
+      component: () => import("@/views/IncomeTransactionCreate.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/income-transactions",
+      name: "income-transaction-list",
+      component: () => import("@/views/IncomeTransactionList.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
@@ -46,11 +69,11 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && user) {
-    return "/"
+    return getHomeRouteByRole(user.role)
   }
 
   if (to.meta.requiresAdmin && !isAdmin()) {
-    return "/"
+    return getHomeRouteByRole(user?.role)
   }
 
   return true
