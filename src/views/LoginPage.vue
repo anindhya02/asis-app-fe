@@ -6,10 +6,11 @@ import { useAuthStore } from '@/stores/auth.store'
 const router = useRouter()
 const authStore = useAuthStore()
 
-function getHomeRouteByRole(role?: string | null) {
+function getHomeRouteByRole(role?: string | null): string {
   const r = (role || '').toUpperCase()
   if (r === 'ADMIN') return '/users'
   if (r === 'PENGURUS') return '/income-transactions'
+  return '/auth/login'
 }
 
 const username = ref('')
@@ -18,6 +19,9 @@ const errors = ref<{ username?: string; password?: string }>({})
 const isLoading = ref(false)
 
 const isDisabled = computed(() => !username.value.trim() || !password.value.trim())
+
+const usernameFilled = computed(() => username.value.trim().length > 0)
+const passwordFilled = computed(() => password.value.trim().length > 0)
 
 const handleLogin = async (e: Event) => {
   e.preventDefault()
@@ -44,8 +48,10 @@ const handleLogin = async (e: Event) => {
     await authStore.login({ username: username.value, password: password.value })
     const role = authStore.user?.role ?? null
     router.push(getHomeRouteByRole(role))
-  } catch {
-    // error sudah ditangani di store
+  } catch (err: any) {
+    console.log('catch triggered', err)   // ← cek ini muncul ga di console
+    const msg = err?.response?.data?.message || 'Username atau password salah'
+    errors.value = { username: msg, password: msg }
   } finally {
     isLoading.value = false
   }
@@ -54,73 +60,80 @@ const handleLogin = async (e: Event) => {
 
 <template>
   <div class="page">
-    <div class="bg-art">
-      <div class="blob blob-1" />
-      <div class="blob blob-2" />
-      <div class="blob blob-3" />
+
+    <!-- LEFT — foto gedung -->
+    <div class="panel-left">
+      <img src="@/assets/image3.png" alt="Gedung Ash-Sholihati" class="bg-photo" />
+      <div class="photo-overlay" />
     </div>
 
-    <div class="page-wrap">
-      <div class="logo-card">
-        <span class="logo-text">ASIS</span>
-      </div>
+    <!-- RIGHT — form -->
+    <div class="panel-right">
+      <div class="form-container">
 
-      <div class="card">
-        <div class="card-accent" />
-        <div class="card-body">
-          <div class="card-header">
-            <h1>Selamat datang kembali</h1>
-            <p>Masuk untuk mengakses sistem manajemen</p>
-          </div>
+        <!-- Heading -->
+        <div class="heading-group">
+          <h1 class="heading">
+            Selamat datang di
+            <span class="brand">ASIS</span>
+          </h1>
+        </div>
 
-          <div class="divider"><span>Autentikasi</span></div>
-
+        <!-- Card -->
+        <div class="card">
           <form class="form" @submit="handleLogin" novalidate>
+
             <!-- Username -->
             <div class="field">
-              <label for="username">Username</label>
-              <div class="input-wrap">
-                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              <label
+                for="username"
+                :class="{ 'label-filled': usernameFilled, 'label-error': errors.username }"
+              >Username</label>
+              <div
+                class="input-wrap"
+                :class="{ 'has-error': errors.username, 'is-filled': usernameFilled }"
+              >
+                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
                 </svg>
                 <input
                   id="username"
                   v-model="username"
                   type="text"
-                  placeholder="Masukkan username"
+                  placeholder="Username"
                   autocomplete="username"
-                  :class="{ 'error-input': errors.username }"
                 />
               </div>
-              <span v-if="errors.username" class="error-msg">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {{ errors.username }}
-              </span>
+              <span v-if="errors.username" class="error-msg">{{ errors.username }}</span>
             </div>
 
             <!-- Password -->
             <div class="field">
-              <label for="password">Password</label>
-              <div class="input-wrap">
-                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <label
+                for="password"
+                :class="{ 'label-filled': passwordFilled, 'label-error': errors.password }"
+              >Password</label>
+              <div
+                class="input-wrap"
+                :class="{ 'has-error': errors.password, 'is-filled': passwordFilled }"
+              >
+                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
                 <input
                   id="password"
                   v-model="password"
                   type="password"
-                  placeholder="Masukkan password"
+                  placeholder="Password"
                   autocomplete="current-password"
-                  :class="{ 'error-input': errors.password }"
                 />
               </div>
-              <span v-if="errors.password" class="error-msg">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {{ errors.password }}
-              </span>
+              <span v-if="errors.password" class="error-msg">{{ errors.password }}</span>
             </div>
 
-            <!-- Button -->
+            <!-- Submit -->
             <button class="btn" type="submit" :disabled="isDisabled || isLoading">
               <span class="btn-inner">
                 <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24" fill="none">
@@ -130,227 +143,233 @@ const handleLogin = async (e: Event) => {
                 {{ isLoading ? 'Memuat...' : 'Login' }}
               </span>
             </button>
-          </form>
-        </div>
-      </div>
 
-      <p class="footer-text">Ash-Sholihati Information System</p>
+          </form>
+
+          <p class="footer-text">Ash Sholihati Information System</p>
+        </div>
+
+      </div>
     </div>
+
   </div>
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Manrope:wght@600&display=swap');
+
+/* ── Layout ─────────────────────────────────────────── */
 .page {
-  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f4f3;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #FEFEFE;
+}
+
+/* ── Left panel ──────────────────────────────────────── */
+.panel-left {
   position: relative;
+  width: 49.2%;
+  height: 100vh;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
-.bg-art {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-.bg-art::after {
-  content: '';
+.bg-photo {
   position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,198,172,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,198,172,0.05) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.28;
-  animation: drift 14s ease-in-out infinite alternate;
-}
-.blob-1 { width: 560px; height: 560px; background: radial-gradient(circle, #00C6AC 0%, transparent 70%); top: -200px; right: -150px; }
-.blob-2 { width: 380px; height: 380px; background: radial-gradient(circle, #7ee8dd 0%, transparent 70%); bottom: -120px; left: -80px; animation-delay: -5s; animation-duration: 10s; }
-.blob-3 { width: 260px; height: 260px; background: radial-gradient(circle, #b2f0e8 0%, transparent 70%); top: 38%; left: 28%; animation-delay: -9s; animation-duration: 18s; }
-
-@keyframes drift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(28px, 18px) scale(1.07); }
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
 }
 
-.page-wrap {
-  position: relative;
-  z-index: 1;
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(103, 103, 103, 0.35);
+  mix-blend-mode: overlay;
+}
+
+/* ── Right panel ─────────────────────────────────────── */
+.panel-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FEFEFE;
+  padding: 2rem;
+}
+
+.form-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.75rem;
-  padding: 2rem 1rem;
-  animation: fadeUp 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(22px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ── Heading ─────────────────────────────────────────── */
+.heading-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
-.logo-card {
-  background: #fff;
-  border: 1px solid rgba(0,198,172,0.2);
-  border-radius: 14px;
-  padding: 11px 34px;
-  box-shadow: 0 4px 20px rgba(0,198,172,0.12);
+.heading {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.5vw, 36px);
+  line-height: 1;
+  color: #000000;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  margin: 0;
 }
-.logo-text {
-  font-size: 1.85rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  background: linear-gradient(135deg, #00C6AC 0%, #009e89 100%);
+
+.brand {
+  font-family: 'Poppins';
+  font-weight: 700;
+  font-size: clamp(2.8rem, 5vw, 72px);
+  font-style: normal;
+  line-height: 54px;
+  background: linear-gradient(138.29deg, #EFEFEF 8.4%, #77DACD 39.72%, #146E61 81.36%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* ── Card ────────────────────────────────────────────── */
 .card {
-  background: #fff;
-  border-radius: 20px;
-  width: min(420px, 100%);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.09), 0 0 0 1px rgba(0,198,172,0.1);
-  overflow: hidden;
-}
-.card-accent {
-  height: 4px;
-  background: linear-gradient(90deg, #00C6AC 0%, #7ee8dd 50%, #009e89 100%);
-}
-.card-body {
-  padding: 2rem 2.25rem 2.25rem;
+  width: 100%;
+  max-width: 420px;
+  background: #F6FFFD;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.card-header { margin-bottom: 1.5rem; }
-.card-header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #0d1117;
-  line-height: 1.3;
-}
-.card-header p {
-  font-size: 0.82rem;
-  color: #8a9590;
-  margin-top: 0.3rem;
+/* ── Form ────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.divider {
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Label — abu2 default, hitam saat terisi, merah saat error ── */
+label {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 16px;
+  color: #070708;
+  transition: color 0.2s;
+}
+label.label-filled { color: #070708; }
+label.label-error  { color: #e63946; }
+
+/* ── Input — abu2 default, teal saat terisi, merah saat error ── */
+.input-wrap {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 24px;
+  padding: 12px 32px;
+  border: 2px solid #D5D5D5;
+  border-radius: 12px;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  height: 48px;
+  box-sizing: border-box;
 }
-.divider::before, .divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #e8eceb;
-}
-.divider span {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #b0b8b5;
-  font-weight: 600;
-}
-
-.form { display: flex; flex-direction: column; gap: 1.1rem; }
-.field { display: flex; flex-direction: column; gap: 0.4rem; }
-
-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #4a5550;
-}
-
-.input-wrap { position: relative; }
+.input-wrap.is-filled               { border-color: #00C6AC; }
+.input-wrap.has-error               { border-color: #e63946; }
+.input-wrap:focus-within            { border-color: #00C6AC; box-shadow: 0 0 0 3px rgba(0,198,172,0.18); }
+.input-wrap.has-error:focus-within  { border-color: #e63946; box-shadow: 0 0 0 3px rgba(230,57,70,0.12); }
 
 .input-icon {
-  position: absolute;
-  left: 0.875rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #b0b8b5;
+  color: #D5D5D5;
+  flex-shrink: 0;
   pointer-events: none;
   transition: color 0.2s;
 }
+.input-wrap.is-filled .input-icon  { color: #00C6AC; }
+.input-wrap.has-error .input-icon  { color: #e63946; }
 .input-wrap:focus-within .input-icon { color: #00C6AC; }
 
 input {
-  width: 100%;
-  height: 48px;
-  padding: 0 1rem 0 2.75rem;
-  border-radius: 12px;
-  border: 1.5px solid #e2e8e6;
-  background: #fbfcfc;
-  font-family: inherit;
-  font-size: 0.9rem;
-  color: #0d1117;
+  flex: 1;
+  border: none;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 16px;
+  color: #070708;
+  min-width: 0;
 }
-input::placeholder { color: #c2cac7; }
-input:focus {
-  border-color: #00C6AC;
-  background: #fff;
-  box-shadow: 0 0 0 3.5px rgba(0,198,172,0.15);
-}
-input.error-input { border-color: #e63946; }
-input.error-input:focus { box-shadow: 0 0 0 3.5px rgba(230,57,70,0.12); }
+input::placeholder { color: #D5D5D5; font-weight: 600; }
 
+/* ── Error message ───────────────────────────────────── */
 .error-msg {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
+  gap: 4px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   color: #e63946;
 }
 
+/* ── Button — abu2 saat disabled, teal saat aktif ───── */
 .btn {
-  width: 100%;
-  height: 50px;
-  margin-top: 0.4rem;
-  border: none;
-  border-radius: 12px;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.2s;
-  background: linear-gradient(135deg, #00C6AC 0%, #009e89 100%);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(0,198,172,0.35);
-}
-.btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(0,198,172,0.45);
-}
-.btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0,198,172,0.3);
-}
-.btn:disabled {
-  background: linear-gradient(135deg, #c8d5d3, #b5c4c1);
-  color: #9aaaa7;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-.btn-inner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  padding: 16px 24px;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #FEFEFE;
+  background: linear-gradient(180deg, #77DACD 0%, #00C6AC 100%);
+  transition: transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(0, 198, 172, 0.35);
+}
+.btn:hover:not(:disabled)  { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,198,172,0.45); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled {
+  background: linear-gradient(180deg, #D5D5D5 0%, #C0C0C0 100%);
+  color: #F0F0F0;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .spinner {
@@ -360,9 +379,23 @@ input.error-input:focus { box-shadow: 0 0 0 3.5px rgba(230,57,70,0.12); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Footer ──────────────────────────────────────────── */
 .footer-text {
-  font-size: 0.72rem;
-  color: #a8b4b0;
-  letter-spacing: 0.02em;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 12px;
+  color: #99999A;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { flex-direction: column; }
+  .panel-left { width: 100%; height: 220px; }
+  .panel-right { padding: 1.5rem 1rem; align-items: flex-start; }
+  .heading { font-size: 1.6rem; white-space: normal; flex-wrap: wrap; }
+  .brand { font-size: 2rem; }
 }
 </style>

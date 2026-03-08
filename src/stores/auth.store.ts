@@ -42,9 +42,16 @@ export const useAuthStore = defineStore('auth', {
         setLocalStorage('token', this.token);
         setLocalStorage('user', this.user);
 
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Error saat memuat post: ${this.error}`);
+      } catch (error: any) {
+        // Ambil pesan dari response BE, fallback ke pesan default
+        const msg =
+          error?.response?.data?.message ||
+          'Username atau password salah';
+
+        this.error = msg;
+
+        // Re-throw supaya LoginPage bisa menangkap dan menampilkan error di form
+        throw error;
       } finally {
         this.loading = false;
       }

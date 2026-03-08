@@ -280,7 +280,7 @@ async function onUserSaved() {
 
 .main { flex: 1; overflow-y: auto; background: #f5f6f7; }
 .content { max-width: 1060px; margin: 0 auto; padding: 40px 36px; }
-.page-title { font-size: 2.1rem; font-weight: 700; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em; }
+.page-title { font-family: 'Poppins', sans-serif !important; font-size: 2.1rem; font-weight: 700; color: #111827; margin-bottom: 24px; letter-spacing: -0.02em; }
 
 .toolbar {
   display: flex; align-items: center; gap: 10px;

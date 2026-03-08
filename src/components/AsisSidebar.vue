@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 import { getCurrentUser } from '@/lib/auth'
+import LogoutConfirmModal from '@/components/LogoutConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,9 +27,21 @@ function isActive(startWith: string) {
   return route.path.startsWith(startWith)
 }
 
-async function handleLogout() {
+// ── Logout dengan konfirmasi ──
+const showLogoutModal = ref(false)
+
+function requestLogout() {
+  showLogoutModal.value = true
+}
+
+async function confirmLogout() {
+  showLogoutModal.value = false
   await authStore.logout()
   router.push('/auth/login')
+}
+
+function cancelLogout() {
+  showLogoutModal.value = false
 }
 </script>
 
@@ -48,7 +61,6 @@ async function handleLogout() {
             :class="{ 'nav-item--active': isActive('/income-transactions') }"
             @click="go('/income-transactions')"
           >
-            <!-- ArrowDownCircle -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -59,7 +71,6 @@ async function handleLogout() {
           </button>
 
           <button type="button" class="nav-item nav-item--disabled">
-            <!-- ArrowUpCircle -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -70,7 +81,6 @@ async function handleLogout() {
           </button>
 
           <button type="button" class="nav-item nav-item--disabled">
-            <!-- FileText -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -83,7 +93,6 @@ async function handleLogout() {
           </button>
 
           <button type="button" class="nav-item nav-item--disabled">
-            <!-- Newspaper -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a4 4 0 0 1-4 4z" />
@@ -96,7 +105,6 @@ async function handleLogout() {
           </button>
 
           <button type="button" class="nav-item nav-item--disabled">
-            <!-- LayoutDashboard -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="9" />
@@ -108,7 +116,6 @@ async function handleLogout() {
           </button>
 
           <button type="button" class="nav-item nav-item--disabled">
-            <!-- ClipboardList -->
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
@@ -154,7 +161,7 @@ async function handleLogout() {
         type="button"
         class="logout-btn"
         title="Logout"
-        @click="handleLogout"
+        @click="requestLogout"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -165,6 +172,13 @@ async function handleLogout() {
       </button>
     </footer>
   </aside>
+
+  <!-- Modal konfirmasi logout -->
+  <LogoutConfirmModal
+    :isOpen="showLogoutModal"
+    @confirm="confirmLogout"
+    @cancel="cancelLogout"
+  />
 </template>
 
 <style scoped>
@@ -183,13 +197,15 @@ async function handleLogout() {
 }
 
 .logo-text {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  background: linear-gradient(135deg, #00c6ac 0%, #009e89 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+   font-family: 'Poppins', sans-serif !important;;
+    font-weight: 700;
+    font-size: clamp(2rem, 3.5vw, 52px);
+    font-style: normal;
+    line-height: 54px;
+    background: linear-gradient(138.29deg, #EFEFEF 8.4%, #77DACD 39.72%, #146E61 81.36%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .sidebar-nav {
@@ -301,4 +317,3 @@ async function handleLogout() {
   background: #fee2e2;
 }
 </style>
-
