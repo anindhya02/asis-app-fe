@@ -13,6 +13,12 @@ const category = ref<string>('')
 const paymentMethod = ref<string>('')
 const sourceType = ref<string>('')
 const search = ref<string>('')
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+function handleSearchInput() {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => fetchData(0), 350)
+}
 
 const categoryLabel: Record<string, string> = {
   DONASI: 'Donasi',
@@ -152,8 +158,8 @@ onMounted(() => {
               v-model="search"
               class="search-input"
               type="text"
-              placeholder="Cari berdasarkan nama donatur, kategori, atau pencatat..."
-              @input="handleFilter"
+              placeholder="Cari berdasarkan nama donatur atau pencatat..."
+              @input="handleSearchInput"
             />
           </div>
           <button v-if="hasFilter" type="button" class="secondary-btn" @click="resetFilter">
