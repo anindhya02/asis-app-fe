@@ -16,6 +16,7 @@ export const useIncomeTransactionStore = defineStore('incomeTransaction', {
     loading: false,
     error: null as string | null,
     items: [] as IncomeTransaction[],
+    currentItem: null as IncomeTransaction | null,
     page: 0,
     size: 10,
     totalElements: 0,
@@ -109,6 +110,66 @@ export const useIncomeTransactionStore = defineStore('incomeTransaction', {
         this.error = message
         toast.error(message)
 
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchIncomeTransactionById(id: string) {
+      this.loading = true
+      this.error = null
+      this.currentItem = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.get<CommonResponseInterface<IncomeTransaction>>(
+          `${baseIncomeUrl}/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+        this.currentItem = response.data.data
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteIncomeTransaction(id: string) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.delete<CommonResponseInterface<null>>(
+          `${baseIncomeUrl}/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+        toast.success(response.data.message || 'Transaksi berhasil dihapus')
+        return true
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
         throw error
       } finally {
         this.loading = false
