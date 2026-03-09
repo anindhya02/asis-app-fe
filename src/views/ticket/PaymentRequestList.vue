@@ -1,48 +1,66 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useIncomeTransactionStore } from '@/stores/income-transaction.store'
+import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 
-const store = useIncomeTransactionStore()
+const store = usePaymentRequestStore()
 const router = useRouter()
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
-const category = ref<string>('')
-const paymentMethod = ref<string>('')
-const sourceType = ref<string>('')
+const expenseCategory = ref<string>('')
+const status = ref<string>('')
 const search = ref<string>('')
 
 const categoryLabel: Record<string, string> = {
-  DONASI: 'Donasi',
-  ZAKAT: 'Zakat',
-  INFAQ: 'Infaq',
+  OPERASIONAL: 'Operasional',
+  KONSUMSI: 'Konsumsi',
+  TRANSPORTASI: 'Transportasi',
+  PERLENGKAPAN: 'Perlengkapan',
+  PROGRAM_KEGIATAN: 'Program Kegiatan',
+  GAJI: 'Gaji & Honor',
+  INFRASTRUKTUR: 'Infrastruktur',
   LAIN_LAIN: 'Lain-lain',
 }
 
-const paymentLabel: Record<string, string> = {
-  CASH: 'Tunai',
-  TRANSFER: 'Transfer Bank',
+const statusLabel: Record<string, string> = {
+  DRAFT: 'Draft',
+  PENDING_REVIEW: 'Pending',
+  REVISION_REQUESTED: 'Revision',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled',
 }
 
-const sourceLabel: Record<string, string> = {
-  INDIVIDU: 'Individu',
-  KOMUNITAS: 'Komunitas',
-  PERUSAHAAN: 'Perusahaan',
+const statusClass: Record<string, string> = {
+  DRAFT: 'badge--draft',
+  PENDING_REVIEW: 'badge--pending',
+  REVISION_REQUESTED: 'badge--revision',
+  APPROVED: 'badge--approved',
+  REJECTED: 'badge--rejected',
+  CANCELLED: 'badge--cancelled',
 }
 
 function labelOf(map: Record<string, string>, val: string) {
   return map[val] ?? val
 }
 
+function formatDate(dateStr: string) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 async function fetchData(page = 0) {
-  await store.fetchIncomeTransactions({
+  await store.fetchPaymentRequests({
     startDate: startDate.value || undefined,
     endDate: endDate.value || undefined,
-    category: category.value || undefined,
-    paymentMethod: paymentMethod.value || undefined,
-    sourceType: sourceType.value || undefined,
+    expenseCategory: expenseCategory.value || undefined,
+    status: status.value || undefined,
     search: search.value || undefined,
     page,
     size: store.size,
@@ -56,9 +74,8 @@ function handleFilter() {
 function resetFilter() {
   startDate.value = ''
   endDate.value = ''
-  category.value = ''
-  paymentMethod.value = ''
-  sourceType.value = ''
+  expenseCategory.value = ''
+  status.value = ''
   search.value = ''
   fetchData(0)
 }
@@ -81,9 +98,8 @@ const hasFilter = computed(
     !!(
       startDate.value ||
       endDate.value ||
-      category.value ||
-      paymentMethod.value ||
-      sourceType.value ||
+      expenseCategory.value ||
+      status.value ||
       search.value
     )
 )
@@ -99,8 +115,8 @@ onMounted(() => {
 
     <main class="content">
       <header class="content-header">
-        <h1 class="page-title">Daftar Transaksi Pemasukan</h1>
-        <p class="page-subtitle">Kelola dan pantau seluruh dana masuk yayasan</p>
+        <h1 class="page-title">Daftar Pengajuan Dana</h1>
+        <p class="page-subtitle">Kelola dan pantau seluruh permintaan dana sebelum dieksekusi</p>
       </header>
 
       <!-- Filter Card -->
@@ -110,34 +126,42 @@ onMounted(() => {
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16" /><path d="M6 12h12" /><path d="M10 20h4" />
           </svg>
-          <span>Filter Data</span>
+          <span>FILTER DATA</span>
         </div>
 
         <div class="filter-grid">
           <div class="field">
             <label>Tanggal Mulai</label>
-            <input v-model="startDate" type="date" @change="handleFilter" />
+            <input v-model="startDate" type="date" placeholder="dd/mm/yyyy" @change="handleFilter" />
           </div>
           <div class="field">
             <label>Tanggal Akhir</label>
-            <input v-model="endDate" type="date" @change="handleFilter" />
+            <input v-model="endDate" type="date" placeholder="dd/mm/yyyy" @change="handleFilter" />
           </div>
           <div class="field">
             <label>Kategori</label>
-            <select v-model="category" @change="handleFilter">
-              <option value="">Semua Kateogri</option>
-              <option value="DONASI">Donasi</option>
-              <option value="ZAKAT">Zakat</option>
-              <option value="INFAQ">Infaq</option>
+            <select v-model="expenseCategory" @change="handleFilter">
+              <option value="">Semua Kategori</option>
+              <option value="OPERASIONAL">Operasional</option>
+              <option value="KONSUMSI">Konsumsi</option>
+              <option value="TRANSPORTASI">Transportasi</option>
+              <option value="PERLENGKAPAN">Perlengkapan</option>
+              <option value="PROGRAM_KEGIATAN">Program Kegiatan</option>
+              <option value="GAJI">Gaji &amp; Honor</option>
+              <option value="INFRASTRUKTUR">Infrastruktur</option>
               <option value="LAIN_LAIN">Lain-lain</option>
             </select>
           </div>
           <div class="field">
-            <label>Metode Pembayaran</label>
-            <select v-model="paymentMethod" @change="handleFilter">
-              <option value="">Semua Metode Pembayaran</option>
-              <option value="CASH">Tunai</option>
-              <option value="TRANSFER">Transfer Bank</option>
+            <label>Status</label>
+            <select v-model="status" @change="handleFilter">
+              <option value="">Semua Status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PENDING_REVIEW">Pending</option>
+              <option value="REVISION_REQUESTED">Revision</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>
@@ -152,7 +176,7 @@ onMounted(() => {
               v-model="search"
               class="search-input"
               type="text"
-              placeholder="Cari berdasarkan nama donatur, kategori, atau pencatat..."
+              placeholder="Cari berdasarkan kategori atau keterangan..."
               @input="handleFilter"
             />
           </div>
@@ -161,14 +185,14 @@ onMounted(() => {
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-            Reset Filter
+            Reset
           </button>
-          <button type="button" class="primary-btn" @click="() => router.push('/income-transactions/create')">
+          <button type="button" class="primary-btn" @click="() => router.push('/payment-requests/create')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Tambah Pemasukan
+            Ajukan Permintaan Dana
           </button>
         </div>
       </section>
@@ -180,11 +204,11 @@ onMounted(() => {
             <thead>
               <tr>
                 <th>Tanggal</th>
+                <th>Judul</th>
                 <th>Kategori</th>
-                <th>Sumber</th>
-                <th>Metode</th>
                 <th class="th-right">Nominal</th>
-                <th>Pencatat</th>
+                <th class="th-center">Status</th>
+                <th>Tujuan</th>
                 <th class="th-center">Aksi</th>
               </tr>
             </thead>
@@ -202,46 +226,61 @@ onMounted(() => {
                   <div class="empty-inner">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
                       stroke="#d4d4d4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M3 9h18M9 21V9" />
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
-                    <p class="empty-title">Belum ada transaksi</p>
-                    <p class="empty-sub">Belum ada transaksi pemasukan yang tercatat.</p>
+                    <p class="empty-title">Belum ada pengajuan dana</p>
+                    <p class="empty-sub">Buat ticket pengajuan dana untuk memulai proses review.</p>
+                    <button type="button" class="primary-btn empty-cta" @click="() => router.push('/payment-requests/create')">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      Ajukan Permintaan Dana
+                    </button>
                   </div>
                 </td>
               </tr>
 
               <!-- Data rows -->
               <tr v-else v-for="item in store.items" :key="item.id">
-                <td>{{ item.transactionDate }}</td>
-                <td>{{ labelOf(categoryLabel, item.category) }}</td>
-                <td>{{ labelOf(sourceLabel, item.sourceType) }}</td>
-                <td>{{ labelOf(paymentLabel, item.paymentMethod) }}</td>
+                <td>{{ formatDate(item.createdAt) }}</td>
+                <td class="td-title">{{ item.title }}</td>
+                <td>{{ labelOf(categoryLabel, item.expenseCategory) }}</td>
                 <td class="td-amount">Rp {{ item.amount.toLocaleString('id-ID') }}</td>
-                <td>{{ item.createdByUsername }}</td>
+                <td class="td-center">
+                  <span class="badge" :class="statusClass[item.status] || ''">
+                    {{ labelOf(statusLabel, item.status) }}
+                  </span>
+                </td>
+                <td class="td-purpose">{{ item.purpose }}</td>
                 <td class="actions-cell">
                   <!-- View -->
                   <button type="button" class="icon-btn"
                     title="Lihat Detail"
-                    @click.stop="router.push(`/income-transactions/${item.id}`)">
+                    @click.stop="router.push(`/payment-requests/${item.id}`)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   </button>
-                  <!-- Edit -->
-                  <button type="button" class="icon-btn"
+                  <!-- Edit (only for DRAFT or REVISION_REQUESTED) -->
+                  <button v-if="item.status === 'DRAFT' || item.status === 'REVISION_REQUESTED'"
+                    type="button" class="icon-btn"
                     title="Edit"
-                    @click.stop="router.push(`/income-transactions/${item.id}/edit`)">
+                    @click.stop="router.push(`/payment-requests/${item.id}/edit`)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <!-- Delete -->
-                  <button type="button" class="icon-btn icon-btn--danger"
+                  <!-- Delete (only for DRAFT) -->
+                  <button v-if="item.status === 'DRAFT'"
+                    type="button" class="icon-btn icon-btn--danger"
                     title="Hapus">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -257,9 +296,9 @@ onMounted(() => {
           </table>
         </div>
 
-        <footer class="table-footer">
+        <footer v-if="store.items.length > 0" class="table-footer">
           <span class="page-info">
-            Menampilkan {{ startItem }}-{{ endItem }} dari {{ store.totalElements }} transaksi
+            Menampilkan {{ startItem }}-{{ endItem }} dari {{ store.totalElements }} ticket
           </span>
           <div class="page-controls">
             <button
@@ -339,7 +378,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/*  Filter Card */
+/* Filter Card */
 .card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -471,7 +510,7 @@ select:focus {
 
 .primary-btn:hover { background-color: #00b39c; }
 
-/*  Table Card */
+/* Table Card */
 .table-card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -516,8 +555,63 @@ select:focus {
 .th-right  { text-align: right; }
 .th-center { text-align: center; }
 .td-amount { text-align: right; font-weight: 600; }
+.td-center { text-align: center; }
 
-/*  Action icon buttons */
+.td-title {
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-purpose {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--draft {
+  background-color: #f5f5f5;
+  color: #525252;
+}
+
+.badge--pending {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.badge--revision {
+  background-color: #ffedd5;
+  color: #9a3412;
+}
+
+.badge--approved {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge--rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge--cancelled {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+/* Action icon buttons */
 .actions-cell {
   text-align: center;
   white-space: nowrap;
@@ -547,7 +641,7 @@ select:focus {
   color: #ef4444;
 }
 
-/*  Skeleton  */
+/* Skeleton */
 .skeleton-row td { border-bottom: 1px solid #f0f0f0; }
 
 .skeleton-cell {
@@ -563,7 +657,7 @@ select:focus {
   100% { background-position: -200% 0; }
 }
 
-/*  Empty state */
+/* Empty state */
 .empty-state { border-bottom: none !important; }
 
 .empty-inner {
@@ -587,7 +681,11 @@ select:focus {
   color: #a1a1a1;
 }
 
-/*  Pagination  */
+.empty-cta {
+  margin-top: 12px;
+}
+
+/* Pagination */
 .table-footer {
   display: flex;
   justify-content: space-between;
@@ -636,4 +734,3 @@ select:focus {
   font-weight: 600;
 }
 </style>
-
