@@ -407,7 +407,7 @@ async function handleSubmit() {
           >
             Kembali
           </button>
-          <button type="submit" class="btn-primary" :disabled="isSubmitting || !isFormValid">
+          <button type="submit" class="btn-primary" :disabled="isSubmitting">
             <span v-if="isSubmitting" class="spinner" />
             {{ isSubmitting ? 'Menyimpan...' : 'Simpan' }}
           </button>
