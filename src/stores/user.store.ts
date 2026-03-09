@@ -109,12 +109,21 @@ export const useUserStore = defineStore('user', {
         return response.data.data;
 
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response){
-          await handleAuthError(error.response.status, router);
+        if (axios.isAxiosError(error) && error.response) {
+
+            // hanya handle auth jika 401 / 403
+            if (error.response.status === 401 || error.response.status === 403) {
+            await handleAuthError(error.response.status, router);
+            }
+
         }
 
         this.error = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Error saat membuat user: ${this.error}`);
+
+        // optional: kalau pakai popup jangan pakai toast
+        // toast.error(`Error saat membuat user: ${this.error}`);
+
+        throw error
       } finally {
         this.loading = false;
       }

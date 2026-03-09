@@ -62,7 +62,7 @@ function roleBadgeClass(role: string) {
 
             <div class="detail-row">
               <span class="detail-label">STATUS</span>
-              <span class="status-pill" :class="user.status === 'Active' ? 'status-active' : 'status-inactive'">
+              <span class="status-pill" :class="user.status === 'ACTIVE' ? 'status-active' : 'status-inactive'">
                 {{ user.status }}
               </span>
             </div>
@@ -114,7 +114,8 @@ function roleBadgeClass(role: string) {
 }
 
 .modal-title {
-  font-size: 1.1rem;
+  font-family: 'Poppins';
+  font-size: 1.4rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
@@ -176,11 +177,11 @@ function roleBadgeClass(role: string) {
   border: 1px solid transparent;
   width: fit-content;
 }
-.badge-ketua    { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-.badge-pengurus { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
-.badge-donatur  { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
-.badge-admin    { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-.badge-default  { background: #f3f4f6; color: #6b7280; }
+.badge-ketua    { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
+.badge-pengurus { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
+.badge-donatur  { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
+.badge-admin    { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
+.badge-default  { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
 
 .status-pill {
   display: inline-block;
@@ -191,7 +192,7 @@ function roleBadgeClass(role: string) {
   border: 1px solid transparent;
   width: fit-content;
 }
-.status-active   { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.status-active   { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
 .status-inactive { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
 
 /* Transition */
