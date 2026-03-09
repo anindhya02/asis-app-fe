@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/user.store'
+import ErrorPopup from '@/components/ErrorPopup.vue'
+import SuccessPopup from '@/components/SuccessPopup.vue'
+
+const showErrorPopup = ref(false)
+const errorTitle = ref('')
+const errorMessage = ref('')
+
+const showSuccessPopup = ref(false)
+const successTitle = ref('')
+const successMessage = ref('')
 
 interface Props {
   isOpen: boolean
-  existingUsernames?: string[]
 }
 
 const props = defineProps<Props>()
@@ -35,29 +44,38 @@ const isValid = computed(() =>
   username.value.trim() &&
   role.value &&
   password.value.length >= 8 &&
-  password.value === confirmPassword.value &&
-  !(props.existingUsernames ?? []).includes(username.value.trim().toLowerCase())
+  password.value === confirmPassword.value
 )
 
 function validate() {
   const e: Record<string, string> = {}
-  if (!nama.value.trim()) e.nama = 'Nama wajib diisi'
+
+  if (!nama.value.trim()) {
+    e.nama = 'Nama harus diisi'
+  }
+
   if (!username.value.trim()) {
-    e.username = 'Username wajib diisi'
-  } else if ((props.existingUsernames ?? []).includes(username.value.trim().toLowerCase())) {
-    e.username = 'Username sudah terdaftar'
+    e.username = 'Username harus diisi'
   }
-  if (!role.value) e.role = 'Role wajib dipilih'
+
   if (!password.value) {
-    e.password = 'Password wajib diisi'
-  } else if (password.value.length < 8) {
+    e.password = 'Password harus diisi'
+    } else if (password.value.length < 8) {
     e.password = 'Password minimal 8 karakter'
+    }
+
+    if (!confirmPassword.value) {
+    e.confirmPassword = 'Konfirmasi password harus diisi'
+    }
+
+    if (password.value && confirmPassword.value && password.value !== confirmPassword.value) {
+    e.confirmPassword = 'Password tidak sama'
+    }
+
+  if (!role.value) {
+    e.role = 'Role harus dipilih'
   }
-  if (!confirmPassword.value) {
-    e.confirmPassword = 'Konfirmasi password wajib diisi'
-  } else if (password.value !== confirmPassword.value) {
-    e.confirmPassword = 'Password tidak cocok'
-  }
+
   return e
 }
 
@@ -94,10 +112,29 @@ async function handleSave() {
       role: role.value,
       password: password.value,
     })
+
+    successTitle.value = "User berhasil dibuat!"
+    successMessage.value = "Akun pengguna berhasil ditambahkan."
+    showSuccessPopup.value = true
     emit('saved')
     handleClose()
-  } catch {
-    // error handled in store
+  } catch (err: any) {
+
+  if (err?.response?.status === 400) {
+
+    console.log("ERROR MASUK COMPONENT:", err)
+
+    errorTitle.value = 'User sudah terdaftar!'
+    errorMessage.value = 'Silakan daftarkan user dengan username yang lain.'
+    showErrorPopup.value = true
+
+  } else {
+
+    errorTitle.value = 'Gagal membuat user'
+    errorMessage.value = 'Terjadi kesalahan pada sistem.'
+    showErrorPopup.value = true
+
+  }
   } finally {
     isLoading.value = false
   }
@@ -245,16 +282,16 @@ async function handleSave() {
           <div class="modal-footer">
             <button class="btn-cancel" @click="handleClose">Batal</button>
             <button
-              class="btn-save"
-              :class="{ 'btn-save--disabled': !isValid || isLoading }"
-              :disabled="!isValid || isLoading"
-              @click="handleSave"
+            class="btn-save"
+            :class="{ 'btn-save--disabled': isLoading }"
+            :disabled="isLoading"
+            @click="handleSave"
             >
-              <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24" fill="none">
+            <svg v-if="isLoading" class="spinner" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
                 <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-              </svg>
-              {{ isLoading ? 'Menyimpan...' : 'Simpan' }}
+            </svg>
+            {{ isLoading ? 'Menyimpan...' : 'Simpan' }}
             </button>
           </div>
 
@@ -262,6 +299,20 @@ async function handleSave() {
       </div>
     </Transition>
   </Teleport>
+
+  <ErrorPopup
+  :isOpen="showErrorPopup"
+  :title="errorTitle"
+  :message="errorMessage"
+  @close="showErrorPopup = false"
+/>
+
+<SuccessPopup
+  :isOpen="showSuccessPopup"
+  :title="successTitle"
+  :message="successMessage"
+  @close="showSuccessPopup = false"
+/>
 </template>
 
 <style scoped>
@@ -300,7 +351,8 @@ async function handleSave() {
 }
 
 .modal-title {
-  font-size: 1.1rem;
+  font-family: 'Poppins';
+  font-size: 1.4rem;
   font-weight: 700;
   color: #111827;
   letter-spacing: -0.01em;
@@ -339,6 +391,7 @@ async function handleSave() {
 }
 
 .field-input {
+  box-sizing: border-box;
   width: 100%;
   height: 46px;
   padding: 0 14px;
@@ -362,7 +415,7 @@ async function handleSave() {
 .field-input--icon-right { padding-right: 44px; }
 
 /* Select */
-.select-wrap { position: relative; }
+.select-wrap { position: relative; width: 100%; }
 .field-select { appearance: none; cursor: pointer; }
 .select-chevron {
   position: absolute; right: 12px; top: 50%;
