@@ -49,14 +49,16 @@ function resetCarouselTimer() {
 }
 
 function handleCarouselTouchStart(e: TouchEvent) {
-  carouselTouchStartX.value = e.touches[0].clientX
+  if (e.touches[0]) carouselTouchStartX.value = e.touches[0].clientX
 }
 
 function handleCarouselTouchEnd(e: TouchEvent) {
+  if (!e.changedTouches[0]) return
   const dx = e.changedTouches[0].clientX - carouselTouchStartX.value
   if (dx > 50) carouselPrev()
   else if (dx < -50) carouselNext()
 }
+
 
 // Lightbox
 const lightboxOpen = ref(false)
@@ -86,10 +88,11 @@ function lightboxNext() {
 }
 
 function handleTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
+  if (e.touches[0]) touchStartX.value = e.touches[0].clientX
 }
 
 function handleTouchEnd(e: TouchEvent) {
+  if (!e.changedTouches[0]) return
   const dx = e.changedTouches[0].clientX - touchStartX.value
   if (dx > 50) lightboxPrev()
   else if (dx < -50) lightboxNext()
