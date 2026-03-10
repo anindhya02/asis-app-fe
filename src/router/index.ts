@@ -77,6 +77,48 @@ const router = createRouter({
       component: () => import("@/views/income/IncomeTransactionDetail.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/expense-transactions/create",
+      name: "expense-transaction-create",
+      component: () => import("@/views/expense/ExpenseTransactionCreate.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/expense-transactions/:id",
+      name: "expense-transaction-detail",
+      component: () => import("@/views/expense/ExpenseTransactionDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/expense-transactions",
+      name: "expense-transaction-list",
+      component: () => import("@/views/expense/ExpenseTransactionList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities",
+      name: "activity-list",
+      component: () => import("@/views/ActivityList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/create",
+      name: "activity-create",
+      component: () => import("@/views/ActivityForm.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/:id",
+      name: "activity-detail",
+      component: () => import("@/views/ActivityDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/:id/edit",
+      name: "activity-edit",
+      component: () => import("@/views/ActivityForm.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
