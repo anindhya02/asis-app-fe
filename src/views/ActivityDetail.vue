@@ -63,7 +63,7 @@ function handleCarouselTouchEnd(e: TouchEvent) {
 // Lightbox
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
-const lightboxCurrent = computed(() => imageAttachments.value[lightboxIndex.value])
+const lightboxCurrent = computed(() => imageAttachments.value[lightboxIndex.value] ?? null)
 const touchStartX = ref(0)
 
 function openLightbox(index: number) {
@@ -246,11 +246,10 @@ onUnmounted(() => {
           <template v-if="imageAttachments.length > 0">
             <Transition name="carousel" mode="out-in">
               <img
-                :key="carouselIndex"
-                :src="imageAttachments[carouselIndex].url"
-                :alt="imageAttachments[carouselIndex].filename"
-                class="hero-img hero-clickable"
-                @click="openLightbox(carouselIndex)"
+                :key="lightboxIndex"
+                :src="lightboxCurrent?.url ?? ''"
+                :alt="lightboxCurrent?.filename ?? ''"
+                class="lb-img"
               />
             </Transition>
 
