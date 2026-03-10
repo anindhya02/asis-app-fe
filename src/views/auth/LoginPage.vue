@@ -10,7 +10,8 @@ function getHomeRouteByRole(role?: string | null): string {
   const r = (role || '').toUpperCase()
   if (r === 'ADMIN') return '/users'
   if (r === 'PENGURUS') return '/income-transactions'
-  return '/auth/login'
+  if (r === 'KETUA YAYASAN') return '/payment-requests'
+  return '/payment-requests'
 }
 
 const username = ref('')

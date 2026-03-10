@@ -2,10 +2,12 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
+import { isPengurus } from '@/lib/rbac'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 
 const store = usePaymentRequestStore()
 const router = useRouter()
+const userIsPengurus = computed(() => isPengurus())
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
@@ -126,7 +128,7 @@ onMounted(() => {
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16" /><path d="M6 12h12" /><path d="M10 20h4" />
           </svg>
-          <span>FILTER DATA</span>
+          <span>Filter Data</span>
         </div>
 
         <div class="filter-grid">
@@ -176,7 +178,7 @@ onMounted(() => {
               v-model="search"
               class="search-input"
               type="text"
-              placeholder="Cari berdasarkan kategori atau keterangan..."
+              placeholder="Cari berdasarkan judul atau tujuan..."
               @input="handleFilter"
             />
           </div>
@@ -187,7 +189,7 @@ onMounted(() => {
             </svg>
             Reset
           </button>
-          <button type="button" class="primary-btn" @click="() => router.push('/payment-requests/create')">
+          <button v-if="userIsPengurus" type="button" class="primary-btn" @click="() => router.push('/payment-requests/create')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -233,7 +235,7 @@ onMounted(() => {
                     </svg>
                     <p class="empty-title">Belum ada pengajuan dana</p>
                     <p class="empty-sub">Buat ticket pengajuan dana untuk memulai proses review.</p>
-                    <button type="button" class="primary-btn empty-cta" @click="() => router.push('/payment-requests/create')">
+                    <button v-if="userIsPengurus" type="button" class="primary-btn empty-cta" @click="() => router.push('/payment-requests/create')">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -267,8 +269,8 @@ onMounted(() => {
                       <circle cx="12" cy="12" r="3" />
                     </svg>
                   </button>
-                  <!-- Edit (only for DRAFT or REVISION_REQUESTED) -->
-                  <button v-if="item.status === 'DRAFT' || item.status === 'REVISION_REQUESTED'"
+                  <!-- Edit (only for DRAFT or REVISION_REQUESTED, Pengurus only) -->
+                  <button v-if="userIsPengurus && (item.status === 'DRAFT' || item.status === 'REVISION_REQUESTED')"
                     type="button" class="icon-btn"
                     title="Edit"
                     @click.stop="router.push(`/payment-requests/${item.id}/edit`)">
@@ -278,8 +280,8 @@ onMounted(() => {
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <!-- Delete (only for DRAFT) -->
-                  <button v-if="item.status === 'DRAFT'"
+                  <!-- Delete (only for DRAFT or PENDING_REVIEW, Pengurus only) -->
+                  <button v-if="userIsPengurus && (item.status === 'DRAFT' || item.status === 'PENDING_REVIEW')"
                     type="button" class="icon-btn icon-btn--danger"
                     title="Hapus">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
