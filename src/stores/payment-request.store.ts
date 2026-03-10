@@ -23,6 +23,47 @@ export const usePaymentRequestStore = defineStore('paymentRequest', {
   }),
 
   actions: {
+    async createPaymentRequest(formData: FormData) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.post<
+          CommonResponseInterface<PaymentRequest>
+        >(baseUrl, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        toast.success(
+          response.data.message || 'Pengajuan dana berhasil dibuat',
+        )
+
+        await router.push('/payment-requests')
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     async fetchPaymentRequests(params: {
       startDate?: string
       endDate?: string
