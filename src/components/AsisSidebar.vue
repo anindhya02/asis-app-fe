@@ -226,6 +226,10 @@ function cancelLogout() {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-logo {
