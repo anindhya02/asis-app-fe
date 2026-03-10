@@ -67,7 +67,25 @@ const router = createRouter({
     {
       path: "/income-transactions/:id",
       name: "income-transaction-detail",
-      component: () => import("@/views/IncomeTransactionDetail.vue"),
+      component: () => import("@/views/income/IncomeTransactionDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/expense-transactions/create",
+      name: "expense-transaction-create",
+      component: () => import("@/views/expense/ExpenseTransactionCreate.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/expense-transactions/:id",
+      name: "expense-transaction-detail",
+      component: () => import("@/views/expense/ExpenseTransactionDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/expense-transactions",
+      name: "expense-transaction-list",
+      component: () => import("@/views/expense/ExpenseTransactionList.vue"),
       meta: { requiresAuth: true },
     },
   ],

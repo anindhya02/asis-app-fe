@@ -70,7 +70,12 @@ function cancelLogout() {
             <span>Transaksi Kas Masuk</span>
           </button>
 
-          <button type="button" class="nav-item nav-item--disabled">
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/expense-transactions') }"
+            @click="go('/expense-transactions')"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" />
