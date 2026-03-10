@@ -7,8 +7,9 @@ function getHomeRouteByRole(role?: string | null) {
 
   if (r === "ADMIN") return "/users"
   if (r === "PENGURUS") return "/income-transactions"
+  if (r === "KETUA YAYASAN") return "/payment-requests"
 
-  return "/income-transactions"
+  return "/payment-requests"
 }
 
 const router = createRouter({
@@ -56,6 +57,12 @@ const router = createRouter({
       path: "/income-transactions",
       name: "income-transaction-list",
       component: () => import("@/views/income/IncomeTransactionList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/payment-requests/create",
+      name: "payment-request-create",
+      component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
       meta: { requiresAuth: true },
     },
     {
