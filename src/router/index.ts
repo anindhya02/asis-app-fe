@@ -88,6 +88,30 @@ const router = createRouter({
       component: () => import("@/views/expense/ExpenseTransactionList.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/activities",
+      name: "activity-list",
+      component: () => import("@/views/ActivityList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/create",
+      name: "activity-create",
+      component: () => import("@/views/ActivityForm.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/:id",
+      name: "activity-detail",
+      component: () => import("@/views/ActivityDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/activities/:id/edit",
+      name: "activity-edit",
+      component: () => import("@/views/ActivityForm.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

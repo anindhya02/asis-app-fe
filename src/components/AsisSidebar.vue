@@ -102,7 +102,12 @@ function cancelLogout() {
             <span>Pengajuan Dana</span>
           </button>
 
-          <button type="button" class="nav-item nav-item--disabled">
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/activities') }"
+            @click="go('/activities')"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a4 4 0 0 1-4 4z" />
