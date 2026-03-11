@@ -165,9 +165,9 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Card: Informasi Utama -->
+          <!-- Card: Informasi Transaksi -->
           <section class="card">
-            <h3 class="card-title">Informasi Utama</h3>
+            <h3 class="card-title card-title--bordered">Informasi Transaksi</h3>
             <div class="detail-grid">
               <div class="detail-row">
                 <span class="detail-label">Tanggal</span>
@@ -193,16 +193,16 @@ onMounted(async () => {
                 <span class="detail-label">Pencatat</span>
                 <span class="detail-value">{{ store.currentItem.createdByUsername }}</span>
               </div>
-              <div class="detail-row detail-row--nominal">
-                <span class="detail-label">Nominal</span>
-                <span class="detail-value detail-value--nominal">
-                  {{ formatCurrency(store.currentItem.amount) }}
-                </span>
-              </div>
               <div class="detail-row">
                 <span class="detail-label">Status</span>
                 <span class="status-badge" :class="'status-' + store.currentItem.status.toLowerCase()">
                   {{ store.currentItem.status }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Nominal</span>
+                <span class="detail-value detail-value--nominal">
+                  {{ formatCurrency(store.currentItem.amount) }}
                 </span>
               </div>
             </div>
@@ -446,6 +446,11 @@ onMounted(async () => {
   margin: 0 0 24px;
 }
 
+.card-title--bordered {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 /* ── Detail grid ── */
 .detail-grid {
   display: grid;
@@ -462,6 +467,8 @@ onMounted(async () => {
 .detail-label {
   font-size: 12px;
   color: #525252;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .detail-value {
@@ -470,12 +477,11 @@ onMounted(async () => {
   color: #171717;
 }
 
-.detail-row--nominal { grid-column: 1 / -1; }
-
 .detail-value--nominal {
   font-family: 'Poppins', system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 28px;
   color: #00c6ac;
+  line-height: 1.2;
 }
 
 /* ── Status badge ── */
