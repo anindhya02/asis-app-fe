@@ -13,6 +13,7 @@ const router = useRouter()
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
+const dateRangeError = ref<string>('')
 const category = ref<string>('')
 const paymentMethod = ref<string>('')
 const sourceType = ref<string>('')
@@ -60,12 +61,18 @@ async function fetchData(page = 0) {
 }
 
 function handleFilter() {
+  if (startDate.value && endDate.value && endDate.value < startDate.value) {
+    dateRangeError.value = 'Tanggal akhir tidak boleh lebih kecil dari tanggal mulai'
+    return
+  }
+  dateRangeError.value = ''
   fetchData(0)
 }
 
 function resetFilter() {
   startDate.value = ''
   endDate.value = ''
+  dateRangeError.value = ''
   category.value = ''
   paymentMethod.value = ''
   sourceType.value = ''
@@ -127,11 +134,14 @@ onMounted(() => {
         <div class="filter-grid">
           <div class="field">
             <label>Tanggal Mulai</label>
-            <input v-model="startDate" type="date" @change="handleFilter" />
+            <input v-model="startDate" :max="endDate || undefined" type="date" @change="handleFilter" />
           </div>
           <div class="field">
             <label>Tanggal Akhir</label>
-            <input v-model="endDate" type="date" @change="handleFilter" />
+            <input v-model="endDate" :min="startDate || undefined" type="date" @change="handleFilter" />
+          </div>
+          <div v-if="dateRangeError" class="field" style="grid-column: 1 / -1; padding-top: 0;">
+            <p style="color: #ef4444; font-size: 0.8rem; margin: 0;">{{ dateRangeError }}</p>
           </div>
           <div class="field">
             <label>Kategori</label>
