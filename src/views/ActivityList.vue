@@ -15,6 +15,7 @@ const CAROUSEL_INTERVAL = 3000
 const search = ref('')
 const startDate = ref('')
 const endDate = ref('')
+const dateRangeError = ref('')
 const currentPage = ref(1)
 
 const deleteTarget = ref<ActivityResponse | null>(null)
@@ -120,6 +121,11 @@ function onSearchChange() {
 }
 
 function onDateChange() {
+  if (startDate.value && endDate.value && endDate.value < startDate.value) {
+    dateRangeError.value = 'Tanggal akhir tidak boleh lebih kecil dari tanggal mulai'
+    return
+  }
+  dateRangeError.value = ''
   currentPage.value = 1
 }
 
@@ -164,13 +170,14 @@ onBeforeUnmount(() => {
         <div class="filter-dates">
           <div class="field">
             <label>Tanggal Mulai</label>
-            <input v-model="startDate" type="date" @change="onDateChange" />
+            <input v-model="startDate" :max="endDate || undefined" type="date" @change="onDateChange" />
           </div>
           <div class="field">
             <label>Tanggal Akhir</label>
-            <input v-model="endDate" type="date" @change="onDateChange" />
+            <input v-model="endDate" :min="startDate || undefined" type="date" @change="onDateChange" />
           </div>
         </div>
+        <p v-if="dateRangeError" class="field-error">{{ dateRangeError }}</p>
 
         <div class="filter-bottom">
           <div class="search-wrap">
