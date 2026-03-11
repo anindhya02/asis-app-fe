@@ -3,6 +3,10 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import UnauthorizedAccess from '@/components/UnauthorizedAccess.vue'
+import { isDonatur, isKetua } from '@/lib/rbac'
+
+const isAuthorized = computed(() => !isDonatur() && !isKetua())
 
 const store = useExpenseTransactionStore()
 const router = useRouter()
@@ -37,8 +41,7 @@ const programOptions = [
 
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
-  TRANSFER: 'Transfer Bank',
-  QRIS: 'QRIS',
+  TRANSFER: 'Transfer Bank'
 }
 
 function labelOf(map: Record<string, string>, val: string) {
@@ -109,8 +112,10 @@ onMounted(() => {
 <template>
   <div class="layout">
     <AsisSidebar />
+    <UnauthorizedAccess v-if="!isAuthorized" />
 
     <main class="content">
+
       <header class="content-header">
         <h1 class="page-title">Daftar Transaksi Pengeluaran</h1>
         <p class="page-subtitle">Pantau dan verifikasi seluruh pengeluaran dana yayasan</p>

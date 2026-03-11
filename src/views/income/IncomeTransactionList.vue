@@ -3,6 +3,10 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIncomeTransactionStore } from '@/stores/income-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import UnauthorizedAccess from '@/components/UnauthorizedAccess.vue'
+import { isDonatur, isKetua } from '@/lib/rbac'
+
+const isAuthorized = computed(() => !isDonatur() && !isKetua())
 
 const store = useIncomeTransactionStore()
 const router = useRouter()
@@ -102,8 +106,9 @@ onMounted(() => {
 <template>
   <div class="layout">
     <AsisSidebar />
-
+    
     <main class="content">
+      <UnauthorizedAccess v-if="!isAuthorized" mode="content" />
       <header class="content-header">
         <h1 class="page-title">Daftar Transaksi Pemasukan</h1>
         <p class="page-subtitle">Kelola dan pantau seluruh dana masuk yayasan</p>
@@ -316,6 +321,7 @@ onMounted(() => {
 }
 
 .content {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   padding: 40px 32px;
