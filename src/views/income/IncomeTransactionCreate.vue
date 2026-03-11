@@ -328,17 +328,6 @@ async function handleSubmit() {
 
           <!--   RIGHT COLUMN   -->
           <div class="col">
-            <!-- Catatan Tambahan -->
-            <div class="field">
-              <label>Catatan Tambahan</label>
-              <textarea
-                v-model="note"
-                rows="5"
-                placeholder="Tambahkan catatan (opsional)"
-                class="form-textarea"
-              />
-            </div>
-
             <!-- Upload Bukti Transaksi -->
             <div class="field">
               <label>Upload Bukti Transaksi <span class="required">*</span></label>
@@ -360,8 +349,8 @@ async function handleSubmit() {
                   <line x1="12" y1="12" x2="12" y2="21" />
                   <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
                 </svg>
-                <p class="upload-text">Klik atau seret file ke sini</p>
-                <p class="upload-sub">JPG, PNG, WEBP, atau PDF (maks. 5MB)</p>
+                <p class="upload-text">Upload bukti transaksi (wajib)</p>
+                <p class="upload-sub">Klik atau seret file — JPG, PNG, WEBP, atau PDF (maks. 5MB)</p>
                 <input
                   ref="fileInputRef"
                   type="file"
@@ -393,6 +382,17 @@ async function handleSubmit() {
               </div>
 
               <p v-if="showError('proofFile')" class="error-text">{{ showError('proofFile') }}</p>
+            </div>
+
+            <!-- Catatan Tambahan -->
+            <div class="field">
+              <label>Catatan Tambahan</label>
+              <textarea
+                v-model="note"
+                rows="5"
+                placeholder="Tambahkan catatan (opsional)"
+                class="form-textarea"
+              />
             </div>
           </div>
         </div>

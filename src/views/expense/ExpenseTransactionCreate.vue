@@ -53,7 +53,6 @@ const programOptions = [
 const paymentMethodOptions = [
   { label: 'Tunai', value: 'CASH' },
   { label: 'Transfer Bank', value: 'TRANSFER' },
-  { label: 'QRIS', value: 'QRIS' },
 ]
 
 // Nominal input (formatted display)
@@ -338,17 +337,6 @@ async function handleSubmit() {
 
           <!--   RIGHT COLUMN   -->
           <div class="col">
-            <!-- Catatan Tambahan -->
-            <div class="field">
-              <label>Catatan Tambahan</label>
-              <textarea
-                v-model="note"
-                rows="5"
-                placeholder="Tambahkan catatan pengeluaran (opsional)"
-                class="form-textarea"
-              />
-            </div>
-
             <!-- Upload Bukti Transaksi -->
             <div class="field">
               <label>Upload Bukti Transaksi <span class="required">*</span></label>
@@ -403,6 +391,17 @@ async function handleSubmit() {
               </div>
 
               <p v-if="showError('proofFile')" class="error-text">{{ showError('proofFile') }}</p>
+            </div>
+
+            <!-- Catatan Tambahan -->
+            <div class="field">
+              <label>Catatan Tambahan</label>
+              <textarea
+                v-model="note"
+                rows="5"
+                placeholder="Tambahkan catatan pengeluaran (opsional)"
+                class="form-textarea"
+              />
             </div>
           </div>
         </div>

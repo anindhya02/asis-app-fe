@@ -3,12 +3,17 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIncomeTransactionStore } from '@/stores/income-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import UnauthorizedAccess from '@/components/UnauthorizedAccess.vue'
+import { isDonatur, isKetua } from '@/lib/rbac'
+
+const isAuthorized = computed(() => !isDonatur() && !isKetua())
 
 const store = useIncomeTransactionStore()
 const router = useRouter()
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
+const dateRangeError = ref<string>('')
 const category = ref<string>('')
 const paymentMethod = ref<string>('')
 const sourceType = ref<string>('')
@@ -56,12 +61,18 @@ async function fetchData(page = 0) {
 }
 
 function handleFilter() {
+  if (startDate.value && endDate.value && endDate.value < startDate.value) {
+    dateRangeError.value = 'Tanggal akhir tidak boleh lebih kecil dari tanggal mulai'
+    return
+  }
+  dateRangeError.value = ''
   fetchData(0)
 }
 
 function resetFilter() {
   startDate.value = ''
   endDate.value = ''
+  dateRangeError.value = ''
   category.value = ''
   paymentMethod.value = ''
   sourceType.value = ''
@@ -102,8 +113,9 @@ onMounted(() => {
 <template>
   <div class="layout">
     <AsisSidebar />
-
+    
     <main class="content">
+      <UnauthorizedAccess v-if="!isAuthorized" mode="content" />
       <header class="content-header">
         <h1 class="page-title">Daftar Transaksi Pemasukan</h1>
         <p class="page-subtitle">Kelola dan pantau seluruh dana masuk yayasan</p>
@@ -122,11 +134,14 @@ onMounted(() => {
         <div class="filter-grid">
           <div class="field">
             <label>Tanggal Mulai</label>
-            <input v-model="startDate" type="date" @change="handleFilter" />
+            <input v-model="startDate" :max="endDate || undefined" type="date" @change="handleFilter" />
           </div>
           <div class="field">
             <label>Tanggal Akhir</label>
-            <input v-model="endDate" type="date" @change="handleFilter" />
+            <input v-model="endDate" :min="startDate || undefined" type="date" @change="handleFilter" />
+          </div>
+          <div v-if="dateRangeError" class="field" style="grid-column: 1 / -1; padding-top: 0;">
+            <p style="color: #ef4444; font-size: 0.8rem; margin: 0;">{{ dateRangeError }}</p>
           </div>
           <div class="field">
             <label>Kategori</label>
@@ -316,6 +331,7 @@ onMounted(() => {
 }
 
 .content {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   padding: 40px 32px;

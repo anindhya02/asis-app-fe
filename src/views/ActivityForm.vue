@@ -54,6 +54,19 @@ function updateField(field: string, value: string) {
     delete next[field]
     errors.value = next
   }
+  // Cross-field: tanggal selesai tidak boleh lebih kecil dari tanggal mulai
+  if (field === 'periodeStart' || field === 'periodeEnd') {
+    const start = field === 'periodeStart' ? value : form.value.periodeStart
+    const end = field === 'periodeEnd' ? value : form.value.periodeEnd
+    if (start && end && end < start) {
+      errors.value = { ...errors.value, periodeEnd: 'Tanggal selesai tidak boleh lebih kecil dari tanggal mulai' }
+      touched.value = { ...touched.value, periodeEnd: true }
+    } else {
+      const next = { ...errors.value }
+      delete next.periodeEnd
+      errors.value = next
+    }
+  }
 }
 
 function markTouched(field: string) {
@@ -66,6 +79,8 @@ function validateAll(): Record<string, string> {
   if (!form.value.kategori) errs.kategori = 'Kategori wajib dipilih'
   if (!form.value.program) errs.program = 'Program wajib dipilih'
   if (!form.value.periodeStart) errs.periodeStart = 'Tanggal mulai wajib diisi'
+  if (form.value.periodeEnd && form.value.periodeStart && form.value.periodeEnd < form.value.periodeStart)
+    errs.periodeEnd = 'Tanggal selesai tidak boleh lebih kecil dari tanggal mulai'
   if (!form.value.konten.trim()) errs.konten = 'Konten wajib diisi'
   return errs
 }
@@ -148,6 +163,7 @@ async function handleSubmit() {
     kategori: true,
     program: true,
     periodeStart: true,
+    periodeEnd: true,
     konten: true,
   }
 
@@ -357,6 +373,7 @@ onMounted(async () => {
                 <input
                   type="date"
                   :value="form.periodeStart"
+                  :max="form.periodeEnd || undefined"
                   @input="updateField('periodeStart', ($event.target as HTMLInputElement).value)"
                   @blur="markTouched('periodeStart')"
                   :class="inputClass('periodeStart')"
@@ -364,11 +381,14 @@ onMounted(async () => {
                 <input
                   type="date"
                   :value="form.periodeEnd"
+                  :min="form.periodeStart || undefined"
                   @input="updateField('periodeEnd', ($event.target as HTMLInputElement).value)"
-                  class="form-input"
+                  @blur="markTouched('periodeEnd')"
+                  :class="inputClass('periodeEnd')"
                 />
               </div>
               <p v-if="errors.periodeStart && touched.periodeStart" class="field-error">{{ errors.periodeStart }}</p>
+              <p v-if="errors.periodeEnd && touched.periodeEnd" class="field-error">{{ errors.periodeEnd }}</p>
               <p class="field-hint">Jika hanya 1 hari, isi tanggal mulai saja</p>
             </div>
           </div>
