@@ -25,7 +25,6 @@ const categoryLabel: Record<string, string> = {
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
   TRANSFER: 'Transfer Bank',
-  QRIS: 'QRIS',
 }
 
 function label(map: Record<string, string>, val: string) {
