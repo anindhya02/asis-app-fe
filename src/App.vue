@@ -7,3 +7,9 @@ import { Toaster } from 'vue-sonner'
   <Toaster richColors position="top-right" />
   <RouterView />
 </template>
+
+<style>
+  body {
+    margin: 0;
+  }
+</style>
