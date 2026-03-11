@@ -170,7 +170,6 @@ onMounted(() => {
               <option value="">Semua Metode</option>
               <option value="CASH">Tunai</option>
               <option value="TRANSFER">Transfer Bank</option>
-              <option value="QRIS">QRIS</option>
             </select>
           </div>
           <div class="search-wrap">

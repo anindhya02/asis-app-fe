@@ -53,7 +53,6 @@ const programOptions = [
 const paymentMethodOptions = [
   { label: 'Tunai', value: 'CASH' },
   { label: 'Transfer Bank', value: 'TRANSFER' },
-  { label: 'QRIS', value: 'QRIS' },
 ]
 
 // Nominal input (formatted display)

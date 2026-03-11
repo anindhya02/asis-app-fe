@@ -8,7 +8,7 @@ export type ExpenseCategory =
   | 'INFRASTRUKTUR'
   | 'LAIN_LAIN'
 
-export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS'
+export type PaymentMethod = 'CASH' | 'TRANSFER'
 
 export interface ExpenseTransaction {
   id: string
