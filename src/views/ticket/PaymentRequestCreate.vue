@@ -297,24 +297,25 @@ function validateAllForSubmit(): boolean {
   return Object.keys(errors.value).length === 0 && breakdownsValid
 }
 
-// Draft validation (lighter)
 function validateForDraft(): boolean {
-  // Draft only: need at least category + date to be identifiable
-  if (!neededDate.value || !expenseCategory.value) {
-    toast.warning('Minimal isi tanggal dan kategori untuk menyimpan draft.')
+  const trimmedTitle = title.value.trim()
+
+  touched.value = {
+    ...touched.value,
+    title: true,
+    neededDate: true,
+    expenseCategory: true,
+  }
+
+  validateField('title')
+  validateField('neededDate')
+  validateField('expenseCategory')
+
+  if (!trimmedTitle || !neededDate.value || !expenseCategory.value) {
+    toast.warning('Minimal isi judul, tanggal, kategori untuk menyimpan draft.')
     return false
   }
-  // Validate date not in the past
-  const today = new Date().toISOString().split('T')[0]!
-  if (neededDate.value < today) {
-    toast.warning('Tanggal kebutuhan dana tidak boleh kurang dari hari ini.')
-    return false
-  }
-  // Validate breakdowns if any have data
-  const hasBreakdownData = breakdowns.value.some(b => b.description.trim() || b.amount)
-  if (hasBreakdownData) {
-    return validateBreakdowns()
-  }
+
   return true
 }
 
