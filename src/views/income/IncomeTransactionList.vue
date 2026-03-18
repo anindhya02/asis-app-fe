@@ -37,12 +37,6 @@ const paymentLabel: Record<string, string> = {
   TRANSFER: 'Transfer Bank',
 }
 
-const sourceLabel: Record<string, string> = {
-  INDIVIDU: 'Individu',
-  KOMUNITAS: 'Komunitas',
-  PERUSAHAAN: 'Perusahaan',
-}
-
 function labelOf(map: Record<string, string>, val: string) {
   return map[val] ?? val
 }
@@ -202,7 +196,7 @@ onMounted(() => {
               <tr>
                 <th>Tanggal</th>
                 <th>Kategori</th>
-                <th>Sumber</th>
+                <th>Nama Donatur</th>
                 <th>Metode</th>
                 <th class="th-right">Nominal</th>
                 <th>Pencatat</th>
@@ -236,7 +230,7 @@ onMounted(() => {
               <tr v-else v-for="item in store.items" :key="item.id">
                 <td>{{ item.transactionDate }}</td>
                 <td>{{ labelOf(categoryLabel, item.category) }}</td>
-                <td>{{ labelOf(sourceLabel, item.sourceType) }}</td>
+                <td>{{ item.donorName || '-' }}</td>
                 <td>{{ labelOf(paymentLabel, item.paymentMethod) }}</td>
                 <td class="td-amount">Rp {{ item.amount.toLocaleString('id-ID') }}</td>
                 <td>{{ item.createdByUsername }}</td>
