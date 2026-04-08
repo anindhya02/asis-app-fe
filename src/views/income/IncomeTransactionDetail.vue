@@ -3,16 +3,17 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useIncomeTransactionStore } from '@/stores/income-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import { isPengurus } from '@/lib/rbac'
 
 const route = useRoute()
 const router = useRouter()
 const store = useIncomeTransactionStore()
 
 const id = computed(() => route.params.id as string)
+const canEditIncome = computed(() => isPengurus())
 const showDeleteModal = ref(false)
 const isDeleting = ref(false)
 
-// ── Label maps ─────────────────────────────────────────────
 const categoryLabel: Record<string, string> = {
   DONASI: 'Donasi', ZAKAT: 'Zakat', INFAQ: 'Infaq', LAIN_LAIN: 'Lain-lain',
 }
@@ -76,6 +77,23 @@ function formatDate(dateStr: string): string {
   if (!dateStr) return '—'
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
+}
+
+function formatDateTime(iso: string | undefined | null): string {
+  if (!iso) return '—'
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    return d.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
 }
 
 // ── Delete ────────────────────────────────────────────────
@@ -153,8 +171,12 @@ onMounted(async () => {
             <div class="header-row">
               <h1 class="page-title">Detail Transaksi Pemasukan</h1>
               <div class="header-actions">
-                <button type="button" class="btn-outline-teal"
-                  @click="router.push(`/income-transactions/${id}/edit`)">
+                <button
+                  v-if="canEditIncome"
+                  type="button"
+                  class="btn-outline-teal"
+                  @click="router.push(`/income-transactions/${id}/edit`)"
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -162,7 +184,12 @@ onMounted(async () => {
                   </svg>
                   Edit
                 </button>
-                <button type="button" class="btn-outline-red" @click="showDeleteModal = true">
+                <button
+                  v-if="canEditIncome"
+                  type="button"
+                  class="btn-outline-red"
+                  @click="showDeleteModal = true"
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6" />
@@ -170,7 +197,7 @@ onMounted(async () => {
                     <path d="M10 11v6M14 11v6" />
                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
-                  Hapus
+                  Nonaktifkan
                 </button>
               </div>
             </div>
@@ -203,6 +230,15 @@ onMounted(async () => {
               <div class="detail-row">
                 <span class="detail-label">Pencatat</span>
                 <span class="detail-value">{{ store.currentItem.createdByUsername }}</span>
+              </div>
+              <div
+                v-if="store.currentItem.updatedByUsername"
+                class="detail-row"
+              >
+                <span class="detail-label">Terakhir diubah</span>
+                <span class="detail-value">
+                  {{ store.currentItem.updatedByUsername }} · {{ formatDateTime(store.currentItem.updatedAt) }}
+                </span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Status</span>
@@ -334,9 +370,9 @@ onMounted(async () => {
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
           </div>
-          <h2 class="modal-title">Hapus Transaksi?</h2>
+          <h2 class="modal-title">Nonaktifkan transaksi?</h2>
           <p class="modal-sub">
-            Tindakan ini tidak dapat dibatalkan. Data transaksi akan dihapus secara permanen dari sistem.
+            Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar pemasukan.
           </p>
           <div class="modal-actions">
             <button type="button" class="btn-outline-gray" :disabled="isDeleting"
@@ -345,7 +381,7 @@ onMounted(async () => {
             </button>
             <button type="button" class="btn-danger" :disabled="isDeleting" @click="confirmDelete">
               <span v-if="isDeleting" class="spinner" />
-              {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+              {{ isDeleting ? 'Memproses...' : 'Ya, nonaktifkan' }}
             </button>
           </div>
         </div>
@@ -749,6 +785,7 @@ onMounted(async () => {
   max-width: 420px;
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .modal-icon {
@@ -772,6 +809,7 @@ onMounted(async () => {
 
 .modal-sub {
   font-size: 14px;
+  font-family: inherit;
   color: #525252;
   line-height: 1.5;
   margin: 0 0 24px;

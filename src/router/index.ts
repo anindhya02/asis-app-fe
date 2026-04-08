@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
-import { isAdmin } from "@/lib/rbac"
+import { isAdmin, isPengurus } from "@/lib/rbac"
 
 function getHomeRouteByRole(role?: string | null) {
   const r = (role || "").toUpperCase()
@@ -51,13 +51,13 @@ const router = createRouter({
       path: "/income-transactions/create",
       name: "income-transaction-create",
       component: () => import("@/views/income/IncomeTransactionCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/income-transactions",
       name: "income-transaction-list",
       component: () => import("@/views/income/IncomeTransactionList.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/payment-requests/create",
@@ -72,10 +72,16 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/income-transactions/:id/edit",
+      name: "income-transaction-edit",
+      component: () => import("@/views/income/IncomeTransactionEdit.vue"),
+      meta: { requiresAuth: true, requiresPengurus: true },
+    },
+    {
       path: "/income-transactions/:id",
       name: "income-transaction-detail",
       component: () => import("@/views/income/IncomeTransactionDetail.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/expense-transactions/create",
@@ -158,6 +164,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresAdmin && !isAdmin()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresPengurus && !isPengurus()) {
     return getHomeRouteByRole(user?.role)
   }
 
