@@ -123,23 +123,6 @@ function formatDateTime(iso: string | undefined | null): string {
   }
 }
 
-function formatDateTime(iso: string | undefined | null): string {
-  if (!iso) return '—'
-  try {
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return iso
-    return d.toLocaleString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return iso
-  }
-}
-
 // ── Delete ────────────────────────────────────────────────
 async function confirmDelete() {
   isDeleting.value = true
@@ -244,7 +227,6 @@ onMounted(async () => {
                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
                   Nonaktifkan
-                  Nonaktifkan
                 </button>
               </div>
             </div>
@@ -277,15 +259,6 @@ onMounted(async () => {
               <div class="detail-row">
                 <span class="detail-label">Pencatat</span>
                 <span class="detail-value">{{ store.currentItem.createdByUsername }}</span>
-              </div>
-              <div
-                v-if="store.currentItem.updatedByUsername"
-                class="detail-row"
-              >
-                <span class="detail-label">Terakhir diubah</span>
-                <span class="detail-value">
-                  {{ store.currentItem.updatedByUsername }} · {{ formatDateTime(store.currentItem.updatedAt) }}
-                </span>
               </div>
               <div
                 v-if="store.currentItem.updatedByUsername"
@@ -427,9 +400,7 @@ onMounted(async () => {
             </svg>
           </div>
           <h2 class="modal-title">Nonaktifkan transaksi?</h2>
-          <h2 class="modal-title">Nonaktifkan transaksi?</h2>
           <p class="modal-sub">
-            Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar pemasukan.
             Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar pemasukan.
           </p>
           <div class="modal-actions">
@@ -439,7 +410,6 @@ onMounted(async () => {
             </button>
             <button type="button" class="btn-danger" :disabled="isDeleting" @click="confirmDelete">
               <span v-if="isDeleting" class="spinner" />
-              {{ isDeleting ? 'Memproses...' : 'Ya, nonaktifkan' }}
               {{ isDeleting ? 'Memproses...' : 'Ya, nonaktifkan' }}
             </button>
           </div>
@@ -856,7 +826,6 @@ onMounted(async () => {
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .modal-icon {
@@ -880,7 +849,6 @@ onMounted(async () => {
 
 .modal-sub {
   font-size: 14px;
-  font-family: inherit;
   font-family: inherit;
   color: #525252;
   line-height: 1.5;
