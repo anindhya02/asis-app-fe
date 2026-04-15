@@ -3,6 +3,10 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import {
+  EXPENSE_MAIN_CATEGORY_OPTIONS,
+  expenseSubOptionsForMain,
+} from '@/lib/expense-categories'
 
 const store = useExpenseTransactionStore()
 const router = useRouter()
@@ -12,6 +16,7 @@ const today = new Date().toISOString().slice(0, 10)
 // Form fields
 const transactionDate = ref<string>(today)
 const category = ref<string>('')
+const subCategory = ref<string>('')
 const program = ref<string>('')
 const paymentMethod = ref<string>('')
 const nominalDisplay = ref<string>('')
@@ -28,17 +33,9 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const errors = ref<Record<string, string>>({})
 const touched = ref<Record<string, boolean>>({})
 
-// Options
-const categoryOptions = [
-  { label: 'Operasional', value: 'OPERASIONAL' },
-  { label: 'Konsumsi', value: 'KONSUMSI' },
-  { label: 'Transportasi', value: 'TRANSPORTASI' },
-  { label: 'Perlengkapan', value: 'PERLENGKAPAN' },
-  { label: 'Program Kegiatan', value: 'PROGRAM_KEGIATAN' },
-  { label: 'Gaji', value: 'GAJI' },
-  { label: 'Infrastruktur', value: 'INFRASTRUKTUR' },
-  { label: 'Lain-lain', value: 'LAIN_LAIN' },
-]
+const categoryOptions = EXPENSE_MAIN_CATEGORY_OPTIONS
+
+const subCategoryOptions = computed(() => expenseSubOptionsForMain(category.value))
 
 const programOptions = [
   { label: 'Rumah Yatim', value: 'Rumah Yatim' },
@@ -54,6 +51,14 @@ const paymentMethodOptions = [
   { label: 'Tunai', value: 'CASH' },
   { label: 'Transfer Bank', value: 'TRANSFER' },
 ]
+
+function onMainCategoryChange() {
+  subCategory.value = ''
+  const e = { ...errors.value }
+  delete e.subCategory
+  errors.value = e
+  markTouched('category')
+}
 
 // Nominal input (formatted display)
 function onNominalInput(event: Event) {
@@ -119,6 +124,10 @@ function validateField(field: string) {
       if (!category.value) e.category = 'Kategori pengeluaran wajib dipilih'
       else delete e.category
       break
+    case 'subCategory':
+      if (!subCategory.value) e.subCategory = 'Sub-kategori wajib dipilih'
+      else delete e.subCategory
+      break
     case 'program':
       if (!program.value) e.program = 'Program terkait wajib dipilih'
       else delete e.program
@@ -156,7 +165,16 @@ function showError(field: string): string | undefined {
 
 // Full validation
 function validateAll(): boolean {
-  const fields = ['transactionDate', 'category', 'program', 'paymentMethod', 'amount', 'penerimaDana', 'proofFile']
+  const fields = [
+    'transactionDate',
+    'category',
+    'subCategory',
+    'program',
+    'paymentMethod',
+    'amount',
+    'penerimaDana',
+    'proofFile',
+  ]
   fields.forEach((f) => {
     touched.value[f] = true
     validateField(f)
@@ -168,6 +186,7 @@ function validateAll(): boolean {
 const isFormValid = computed(() =>
   !!transactionDate.value &&
   !!category.value &&
+  !!subCategory.value &&
   !!program.value &&
   !!paymentMethod.value &&
   !!amount.value &&
@@ -186,6 +205,7 @@ async function handleSubmit() {
   const formData = new FormData()
   formData.append('transactionDate', transactionDate.value)
   formData.append('category', category.value)
+  formData.append('subCategory', subCategory.value)
   formData.append('program', program.value)
   formData.append('paymentMethod', paymentMethod.value)
   formData.append('amount', amount.value)
@@ -251,21 +271,45 @@ async function handleSubmit() {
               </p>
             </div>
 
-            <!-- Kategori -->
-            <div class="field">
-              <label>Kategori Pengeluaran <span class="required">*</span></label>
-              <select
-                v-model="category"
-                :class="['form-input', 'form-select', { 'is-error': showError('category') }]"
-                @blur="markTouched('category')"
-                @change="markTouched('category')"
-              >
-                <option value="" disabled>Pilih Kategori</option>
-                <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <p v-if="showError('category')" class="error-text">{{ showError('category') }}</p>
+            <!-- Kategori + Sub-kategori -->
+            <div class="field-row">
+              <div class="field field-half">
+                <label>Kategori <span class="required">*</span></label>
+                <select
+                  v-model="category"
+                  :class="['form-input', 'form-select', { 'is-error': showError('category') }]"
+                  @blur="markTouched('category')"
+                  @change="onMainCategoryChange"
+                >
+                  <option value="" disabled>Masukkan Kategori</option>
+                  <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <p v-if="showError('category')" class="error-text">{{ showError('category') }}</p>
+              </div>
+              <div class="field field-half">
+                <label>Sub-Kategori <span class="required">*</span></label>
+                <select
+                  v-model="subCategory"
+                  :disabled="!category"
+                  :class="[
+                    'form-input',
+                    'form-select',
+                    { 'is-error': showError('subCategory'), 'is-disabled-select': !category },
+                  ]"
+                  @blur="markTouched('subCategory')"
+                  @change="markTouched('subCategory')"
+                >
+                  <option value="" disabled>
+                    {{ category ? 'Pilih sub-kategori' : 'Pilih kategori terlebih dahulu' }}
+                  </option>
+                  <option v-for="opt in subCategoryOptions" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <p v-if="showError('subCategory')" class="error-text">{{ showError('subCategory') }}</p>
+              </div>
             </div>
 
             <!-- Program Terkait -->
@@ -573,6 +617,14 @@ label {
   background-repeat: no-repeat;
   background-position: right 12px center;
   cursor: pointer;
+}
+
+.form-select:disabled,
+.form-select.is-disabled-select {
+  background-color: #f5f5f5;
+  color: #a1a1a1;
+  cursor: not-allowed;
+  border-color: #e5e5e5;
 }
 
 .form-textarea {
