@@ -13,6 +13,7 @@ const currentUser = computed(() => getCurrentUser())
 
 const id = computed(() => route.params.id as string)
 const canManageIncome = computed(() => isPengurus() || isKetua())
+const canDeleteIncome = computed(() => isKetua())
 const canEditIncome = computed(() => {
   if (isKetua()) return true
   if (!isPengurus()) return false
@@ -230,7 +231,7 @@ onMounted(async () => {
                   Edit
                 </button>
                 <button
-                  v-if="canManageIncome"
+                  v-if="canDeleteIncome"
                   type="button"
                   class="btn-outline-red"
                   @click="showDeleteModal = true"
