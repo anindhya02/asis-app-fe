@@ -309,25 +309,6 @@ async function handleSubmit() {
           <h1 class="page-title">Ubah Transaksi Pemasukan</h1>
         </header>
 
-        <div v-if="store.error" class="error-banner">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#FF303E"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            style="flex-shrink: 0"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <p>{{ store.error }}</p>
-        </div>
-
         <form class="card" @submit.prevent="handleSubmit">
           <div class="form-grid">
             <div class="col">
@@ -617,23 +598,6 @@ async function handleSubmit() {
 .not-found-text {
   color: #6b7280;
   margin: 0 0 20px;
-}
-
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: #fff1f2;
-  border: 1px solid rgba(255, 48, 62, 0.2);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: #ff303e;
-}
-
-.error-banner p {
-  margin: 0;
 }
 
 .card {

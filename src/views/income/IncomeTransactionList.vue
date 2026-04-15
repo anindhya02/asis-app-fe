@@ -9,7 +9,7 @@ import { isKetua, isPengurus } from '@/lib/rbac'
 import type { IncomeTransaction } from '@/interfaces/income-transaction.interface'
 
 const isAuthorized = computed(() => isPengurus() || isKetua())
-const canManageIncome = computed(() => isPengurus() || isKetua())
+const canDeleteIncome = computed(() => isKetua())
 const canCreateIncome = computed(() => isPengurus())
 const currentUser = computed(() => getCurrentUser())
 
@@ -355,7 +355,7 @@ onMounted(() => {
                   </button>
                   <!-- Nonaktifkan (soft delete) -->
                   <button
-                    v-if="canManageIncome"
+                    v-if="canDeleteIncome"
                     type="button"
                     class="icon-btn icon-btn--danger"
                     title="Nonaktifkan"
@@ -460,48 +460,6 @@ onMounted(() => {
       </div>
     </Teleport>
 
-    <Teleport to="body">
-      <div
-        v-if="showDeleteModal"
-        class="del-modal-overlay"
-        @click.self="showDeleteModal = false"
-      >
-        <div class="del-modal">
-          <div class="del-modal-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              stroke="#FF303E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </div>
-          <h2 class="del-modal-title">Nonaktifkan transaksi?</h2>
-          <p class="del-modal-sub">
-            Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar ini.
-          </p>
-          <div class="del-modal-actions">
-            <button
-              type="button"
-              class="del-btn-outline"
-              :disabled="isDeletingList"
-              @click="showDeleteModal = false"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              class="del-btn-danger"
-              :disabled="isDeletingList"
-              @click="confirmDeleteList"
-            >
-              <span v-if="isDeletingList" class="del-spinner" />
-              {{ isDeletingList ? 'Memproses...' : 'Ya, nonaktifkan' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -967,120 +925,5 @@ select:focus {
   }
 }
 
-/* Nonaktifkan modal */
-.del-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.del-modal {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 32px;
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.del-modal-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background-color: #fff1f2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-}
-
-.del-modal-title {
-  font-family: 'Poppins', system-ui, sans-serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: #171717;
-  margin: 0 0 8px;
-}
-
-.del-modal-sub {
-  font-size: 14px;
-  font-family: inherit;
-  color: #525252;
-  line-height: 1.5;
-  margin: 0 0 24px;
-}
-
-.del-modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.del-btn-outline {
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  border: 1px solid #d4d4d4;
-  background: #fff;
-  color: #525252;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.del-btn-outline:hover:not(:disabled) {
-  background: #f5f5f5;
-}
-
-.del-btn-outline:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.del-btn-danger {
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  border: none;
-  background: #ff303e;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.del-btn-danger:hover:not(:disabled) {
-  background: #e0202e;
-}
-
-.del-btn-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.del-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
-  border-radius: 50%;
-  animation: del-spin 0.7s linear infinite;
-}
-
-@keyframes del-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>
 
