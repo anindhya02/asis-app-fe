@@ -49,19 +49,21 @@ function resetCarouselTimer() {
 }
 
 function handleCarouselTouchStart(e: TouchEvent) {
-  carouselTouchStartX.value = e.touches[0].clientX
+  if (e.touches[0]) carouselTouchStartX.value = e.touches[0].clientX
 }
 
 function handleCarouselTouchEnd(e: TouchEvent) {
+  if (!e.changedTouches[0]) return
   const dx = e.changedTouches[0].clientX - carouselTouchStartX.value
   if (dx > 50) carouselPrev()
   else if (dx < -50) carouselNext()
 }
 
+
 // Lightbox
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
-const lightboxCurrent = computed(() => imageAttachments.value[lightboxIndex.value])
+const lightboxCurrent = computed(() => imageAttachments.value[lightboxIndex.value] ?? null)
 const touchStartX = ref(0)
 
 function openLightbox(index: number) {
@@ -86,10 +88,11 @@ function lightboxNext() {
 }
 
 function handleTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
+  if (e.touches[0]) touchStartX.value = e.touches[0].clientX
 }
 
 function handleTouchEnd(e: TouchEvent) {
+  if (!e.changedTouches[0]) return
   const dx = e.changedTouches[0].clientX - touchStartX.value
   if (dx > 50) lightboxPrev()
   else if (dx < -50) lightboxNext()
@@ -243,11 +246,10 @@ onUnmounted(() => {
           <template v-if="imageAttachments.length > 0">
             <Transition name="carousel" mode="out-in">
               <img
-                :key="carouselIndex"
-                :src="imageAttachments[carouselIndex].url"
-                :alt="imageAttachments[carouselIndex].filename"
-                class="hero-img hero-clickable"
-                @click="openLightbox(carouselIndex)"
+                :key="lightboxIndex"
+                :src="lightboxCurrent?.url ?? ''"
+                :alt="lightboxCurrent?.filename ?? ''"
+                class="lb-img"
               />
             </Transition>
 

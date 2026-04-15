@@ -142,8 +142,8 @@ function onDrop(event: DragEvent) {
 function removeFile(fileId: string) {
   const idx = uploadedFiles.value.findIndex((f) => f.id === fileId)
   if (idx >= 0) {
-    const f = uploadedFiles.value[idx]
-    if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
+    const file = uploadedFiles.value[idx]
+    if (file && file.previewUrl) URL.revokeObjectURL(file.previewUrl)
     uploadedFiles.value.splice(idx, 1)
     isDirty.value = true
   }
