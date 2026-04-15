@@ -5,6 +5,7 @@ import type { User } from '@/interfaces/user.interface'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import CreateUser from '@/views/admin/CreateUser.vue'
 import ViewUser from '@/views/admin/ViewUser.vue'
+import EditUser from '@/views/admin/EditUser.vue'
 
 const userStore = useUserStore()
 
@@ -17,6 +18,7 @@ const ITEMS_PER_PAGE = 5
 // Modal state
 const showCreateModal = ref(false)
 const showViewModal = ref(false)
+const showEditModal = ref(false)
 const selectedUser = ref<User | null>(null)
 
 onMounted(async () => {
@@ -81,6 +83,25 @@ function openView(user: User) {
 function closeView() {
   showViewModal.value = false
   selectedUser.value = null
+}
+
+function openEdit(user: User) {
+  selectedUser.value = user
+  showEditModal.value = true
+}
+
+function closeEdit() {
+  showEditModal.value = false
+  selectedUser.value = null
+}
+
+async function deactivateUser(user: User) {
+  try {
+    await userStore.deactivateUser(user.userId)
+    await userStore.fetchUsers()
+  } catch (error) {
+    console.error('Gagal menonaktifkan user', error)
+  }
 }
 
 // After create
@@ -176,14 +197,24 @@ async function onUserSaved() {
                       </svg>
                     </button>
                     <!-- Edit -->
-                    <button class="action-btn" title="Edit">
+                    <button
+                      class="action-btn"
+                      title="Edit"
+                      :disabled="user.status?.toUpperCase() === 'INACTIVE'"
+                      @click="openEdit(user)"
+                    >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
                     <!-- Deactivate -->
-                    <button class="action-btn" title="Nonaktifkan" :disabled="user.status === 'Inactive'">
+                    <button
+                      class="action-btn"
+                      title="Nonaktifkan"
+                      :disabled="user.status?.toUpperCase() === 'INACTIVE'"
+                      @click="deactivateUser(user)"
+                    >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/>
@@ -230,6 +261,13 @@ async function onUserSaved() {
       :isOpen="showViewModal"
       :user="selectedUser"
       @close="closeView"
+    />
+
+    <EditUser
+      :isOpen="showEditModal"
+      :user="selectedUser"
+      @close="closeEdit"
+      @saved="onUserSaved"
     />
   </div>
 </template>

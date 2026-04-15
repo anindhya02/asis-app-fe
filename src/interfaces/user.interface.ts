@@ -5,6 +5,13 @@ export interface CreateUserRequest {
   role: string;
 }
 
+export interface UpdateUserRequest {
+  nama: string;
+  username: string;
+  password: string;
+  role: string;
+}
+
 export interface User {
   userId: string;      
   nama: string;
