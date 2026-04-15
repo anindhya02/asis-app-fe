@@ -3,8 +3,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.store'
 import type { User } from '@/interfaces/user.interface'
 import AsisSidebar from '@/components/AsisSidebar.vue'
-import CreateUser from './CreateUser.vue'
-import ViewUser from './ViewUser.vue'
+import CreateUser from '@/views/admin/CreateUser.vue'
+import ViewUser from '@/views/admin/ViewUser.vue'
 
 const userStore = useUserStore()
 

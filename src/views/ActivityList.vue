@@ -4,19 +4,23 @@ import { useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activity.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import DeleteActivityModal from '@/components/DeleteActivityModal.vue'
+import { KATEGORI_OPTIONS } from '@/interfaces/activity.interface'
 import type { ActivityResponse, AttachmentResponse } from '@/interfaces/activity.interface'
 
 const store = useActivityStore()
 const router = useRouter()
 
-const ITEMS_PER_PAGE = 6
 const CAROUSEL_INTERVAL = 3000
 
 const search = ref('')
 const startDate = ref('')
 const endDate = ref('')
+const category = ref('')
 const dateRangeError = ref('')
 const currentPage = ref(1)
+const viewMode = ref<'card' | 'list'>('card')
+
+const itemsPerPage = computed(() => (viewMode.value === 'list' ? 10 : 6))
 
 const deleteTarget = ref<ActivityResponse | null>(null)
 const deleteModalRef = ref<InstanceType<typeof DeleteActivityModal> | null>(null)
@@ -36,15 +40,22 @@ const filtered = computed(() => {
       item.description.toLowerCase().includes(search.value.toLowerCase())
     const matchStart = !startDate.value || item.createdAt >= startDate.value
     const matchEnd = !endDate.value || item.createdAt <= endDate.value
-    return matchSearch && matchStart && matchEnd
+    const matchCategory = !category.value || item.category === category.value
+    return matchSearch && matchStart && matchEnd && matchCategory
   })
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / ITEMS_PER_PAGE)))
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / itemsPerPage.value)))
 
 const paginated = computed(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  return filtered.value.slice(start, start + ITEMS_PER_PAGE)
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  return filtered.value.slice(start, start + itemsPerPage.value)
+})
+
+const hasFilter = computed(() => !!(search.value || startDate.value || endDate.value || category.value))
+
+watch(viewMode, () => {
+  currentPage.value = 1
 })
 
 function getImages(activityId: string): AttachmentResponse[] {
@@ -120,11 +131,24 @@ function onSearchChange() {
   currentPage.value = 1
 }
 
+function onCategoryChange() {
+  currentPage.value = 1
+}
+
 function onDateChange() {
   if (startDate.value && endDate.value && endDate.value < startDate.value) {
     dateRangeError.value = 'Tanggal akhir tidak boleh lebih kecil dari tanggal mulai'
     return
   }
+  dateRangeError.value = ''
+  currentPage.value = 1
+}
+
+function resetFilter() {
+  search.value = ''
+  startDate.value = ''
+  endDate.value = ''
+  category.value = ''
   dateRangeError.value = ''
   currentPage.value = 1
 }
@@ -169,6 +193,15 @@ onBeforeUnmount(() => {
       <section class="filter-card">
         <div class="filter-dates">
           <div class="field">
+            <label>Kategori</label>
+            <select v-model="category" @change="onCategoryChange">
+              <option value="">Semua Kategori</option>
+              <option v-for="cat in KATEGORI_OPTIONS" :key="cat" :value="cat">
+                {{ cat }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
             <label>Tanggal Mulai</label>
             <input v-model="startDate" :max="endDate || undefined" type="date" @change="onDateChange" />
           </div>
@@ -193,20 +226,62 @@ onBeforeUnmount(() => {
               @input="onSearchChange"
             />
           </div>
-          <button type="button" class="primary-btn" @click="router.push('/activities/create')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Buat Postingan
-          </button>
+          <div class="actions-right">
+            <div class="view-toggle">
+              <button
+                type="button"
+                class="view-btn"
+                :class="{ active: viewMode === 'card' }"
+                title="Tampilan Kartu"
+                @click="viewMode = 'card'"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="view-btn"
+                :class="{ active: viewMode === 'list' }"
+                title="Tampilan Daftar"
+                @click="viewMode = 'list'"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <button v-if="hasFilter" type="button" class="secondary-btn" @click="resetFilter">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Reset Filter
+            </button>
+            <button type="button" class="primary-btn" @click="router.push('/activities/create')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Buat Postingan
+            </button>
+          </div>
         </div>
       </section>
 
       <!-- Loading Skeleton -->
       <template v-if="store.loading">
         <div class="card-grid">
-          <div v-for="n in 6" :key="'skel-' + n" class="post-card skeleton-card">
+          <div v-for="n in itemsPerPage" :key="'skel-' + n" class="post-card skeleton-card">
             <div class="skeleton-thumb" />
             <div class="card-body">
               <div class="skeleton-line w75" />
@@ -242,9 +317,9 @@ onBeforeUnmount(() => {
         </div>
       </template>
 
-      <!-- Card Grid -->
+      <!-- Card / List View -->
       <template v-else>
-        <div class="card-grid">
+        <div v-if="viewMode === 'card'" class="card-grid">
           <div
             v-for="item in paginated"
             :key="item.id"
@@ -337,8 +412,56 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <div v-else class="table-container">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>TANGGAL</th>
+                <th>KATEGORI</th>
+                <th>PROGRAM</th>
+                <th>JUDUL</th>
+                <th>PENCATAT</th>
+                <th class="actions-col">AKSI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in paginated" :key="item.id">
+                <td>{{ item.startDate }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.program }}</td>
+                <td class="font-semibold">{{ item.title }}</td>
+                <td>{{ item.createdByUsername || '-' }}</td>
+                <td>
+                  <div class="table-actions">
+                    <button type="button" class="table-action-btn" title="View" @click="router.push(`/activities/${item.id}`)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                    <button type="button" class="table-action-btn" title="Edit" @click="router.push(`/activities/${item.id}/edit`)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                    <button type="button" class="table-action-btn table-action-btn--danger" title="Delete" @click="deleteTarget = item">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <!-- Pagination -->
-        <div v-if="filtered.length > ITEMS_PER_PAGE" class="pagination">
+        <div v-if="filtered.length > itemsPerPage" class="pagination">
           <button
             type="button"
             class="page-btn"
@@ -438,7 +561,7 @@ onBeforeUnmount(() => {
 
 .filter-dates {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
 }
 
@@ -457,7 +580,8 @@ label {
 }
 
 input[type='text'],
-input[type='date'] {
+input[type='date'],
+select {
   height: 42px;
   border-radius: 8px;
   border: 1px solid #d4d4d4;
@@ -471,7 +595,8 @@ input[type='date'] {
 }
 
 input[type='text']:focus,
-input[type='date']:focus {
+input[type='date']:focus,
+select:focus {
   border-color: #00c6ac;
   box-shadow: 0 0 0 1px #00c6ac;
 }
@@ -480,11 +605,51 @@ input[type='date']:focus {
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: space-between;
 }
 
 .search-wrap {
   position: relative;
   flex: 1;
+  max-width: 500px;
+}
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.view-toggle {
+  display: flex;
+  align-items: center;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.view-btn {
+  border: none;
+  background: transparent;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #a1a1a1;
+  transition: all 0.2s;
+}
+
+.view-btn:hover {
+  color: #525252;
+}
+
+.view-btn.active {
+  background: #fff;
+  color: #00c6ac;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .search-icon {
@@ -521,6 +686,30 @@ input[type='date']:focus {
   white-space: nowrap;
 }
 
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 42px;
+  border: 1px solid #d4d4d4;
+  background: #fff;
+  color: #404040;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.secondary-btn:hover {
+  border-color: #00c6ac;
+  color: #00c6ac;
+  background-color: #f0fdfb;
+}
+
 .primary-btn:hover {
   background-color: #00b39c;
 }
@@ -531,6 +720,88 @@ input[type='date']:focus {
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   margin-bottom: 32px;
+}
+
+/* Table View */
+.table-container {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.list-table th {
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #525252;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #fafafa;
+}
+
+.list-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: #171717;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.list-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.actions-col {
+  text-align: center;
+  width: 120px;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-action-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1a1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.table-action-btn:hover {
+  color: #00c6ac;
+  background-color: #e6fcf8;
+}
+
+.table-action-btn--danger:hover {
+  color: #ff303e;
+  background-color: #fff1f2;
 }
 
 .post-card {

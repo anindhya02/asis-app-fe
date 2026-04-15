@@ -65,6 +65,45 @@ export const useIncomeTransactionStore = defineStore('incomeTransaction', {
       }
     },
 
+    async updateIncomeTransaction(id: string, formData: FormData) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.put<
+          CommonResponseInterface<IncomeTransaction>
+        >(`${baseIncomeUrl}/${id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        toast.success(
+          response.data.message || 'Transaksi berhasil diperbarui',
+        )
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     async fetchIncomeTransactions(params: {
       startDate?: string
       endDate?: string
@@ -157,7 +196,9 @@ export const useIncomeTransactionStore = defineStore('incomeTransaction', {
           `${baseIncomeUrl}/${id}`,
           { headers: { Authorization: `Bearer ${token}` } },
         )
-        toast.success(response.data.message || 'Transaksi berhasil dihapus')
+        toast.success(
+          response.data.message || 'Transaksi berhasil dinonaktifkan',
+        )
         return true
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {

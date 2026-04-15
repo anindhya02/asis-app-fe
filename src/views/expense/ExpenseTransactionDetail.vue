@@ -3,24 +3,19 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import { getCurrentUser } from '@/lib/auth'
+import { isKetua, isPengurus } from '@/lib/rbac'
+import { formatExpenseCategoryDisplay } from '@/lib/expense-categories'
 
 const route = useRoute()
 const router = useRouter()
 const store = useExpenseTransactionStore()
 
 const id = computed(() => route.params.id as string)
-
-// ── Label maps ─────────────────────────────────────────────
-const categoryLabel: Record<string, string> = {
-  OPERASIONAL: 'Operasional',
-  KONSUMSI: 'Konsumsi',
-  TRANSPORTASI: 'Transportasi',
-  PERLENGKAPAN: 'Perlengkapan',
-  PROGRAM_KEGIATAN: 'Program Kegiatan',
-  GAJI: 'Gaji',
-  INFRASTRUKTUR: 'Infrastruktur',
-  LAIN_LAIN: 'Lain-lain',
-}
+const currentUser = computed(() => getCurrentUser())
+const canDeleteExpense = computed(() => isKetua())
+const showDeleteModal = ref(false)
+const isDeleting = ref(false)
 
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
@@ -78,6 +73,45 @@ function formatDate(dateStr: string): string {
   if (!dateStr) return '—'
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
+}
+
+const canEditExpense = computed(() => {
+  const item = store.currentItem
+  if (!item) return false
+  if (isKetua()) return true
+  if (!isPengurus()) return false
+  if (item.createdByUsername !== currentUser.value?.username) return false
+  if (!item.createdAt) return false
+  const createdAtDate = new Date(item.createdAt)
+  if (Number.isNaN(createdAtDate.getTime())) return false
+  return Date.now() - createdAtDate.getTime() <= 30 * 60 * 1000
+})
+
+const editDisabledReason = computed(() => {
+  if (isKetua()) return ''
+  if (!isPengurus()) return 'Anda tidak memiliki akses edit transaksi'
+  const item = store.currentItem
+  if (!item) return 'Data transaksi tidak tersedia'
+  if (item.createdByUsername !== currentUser.value?.username) {
+    return 'Pengurus hanya dapat mengubah transaksi milik sendiri'
+  }
+  if (!canEditExpense.value) {
+    return 'Batas waktu edit telah habis'
+  }
+  return ''
+})
+
+async function confirmDelete() {
+  isDeleting.value = true
+  try {
+    await store.deleteExpenseTransaction(id.value)
+    await router.push('/expense-transactions')
+  } catch {
+    // toast handled in store
+  } finally {
+    isDeleting.value = false
+    showDeleteModal.value = false
+  }
 }
 
 // ── Load data ─────────────────────────────────────────────
@@ -141,8 +175,13 @@ onMounted(async () => {
             <div class="header-row">
               <h1 class="page-title">Detail Transaksi Pengeluaran</h1>
               <div class="header-actions">
-                <button type="button" class="btn-outline-teal"
-                  @click="router.push(`/expense-transactions/${id}/edit`)">
+                <button
+                  type="button"
+                  class="btn-outline-teal"
+                  :disabled="!canEditExpense"
+                  :title="editDisabledReason || 'Edit'"
+                  @click="canEditExpense && router.push(`/expense-transactions/${id}/edit`)"
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -150,7 +189,7 @@ onMounted(async () => {
                   </svg>
                   Edit
                 </button>
-                <button type="button" class="btn-outline-red">
+                <button v-if="canDeleteExpense" type="button" class="btn-outline-red" @click="showDeleteModal = true">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6" />
@@ -174,7 +213,12 @@ onMounted(async () => {
               </div>
               <div class="detail-row">
                 <span class="detail-label">Kategori</span>
-                <span class="detail-value">{{ label(categoryLabel, store.currentItem.category) }}</span>
+                <span class="detail-value">{{
+                  formatExpenseCategoryDisplay(
+                    store.currentItem.category,
+                    store.currentItem.subCategory,
+                  )
+                }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Program</span>
@@ -308,6 +352,33 @@ onMounted(async () => {
         </div>
       </template>
     </main>
+
+    <Teleport to="body">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+        <div class="modal">
+          <div class="modal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="#FF303E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </div>
+          <h2 class="modal-title">Nonaktifkan transaksi?</h2>
+          <p class="modal-sub">Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar pengeluaran.</p>
+          <div class="modal-actions">
+            <button type="button" class="btn-outline-gray" :disabled="isDeleting" @click="showDeleteModal = false">
+              Batal
+            </button>
+            <button type="button" class="btn-danger" :disabled="isDeleting" @click="confirmDelete">
+              <span v-if="isDeleting" class="spinner" />
+              {{ isDeleting ? 'Memproses...' : 'Ya, nonaktifkan' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -624,6 +695,8 @@ onMounted(async () => {
 }
 
 .btn-outline-teal:hover { background-color: #f0fdfb; }
+.btn-outline-teal:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-outline-teal:disabled:hover { background-color: #fff; }
 
 .btn-download { height: 40px; }
 
@@ -664,4 +737,88 @@ onMounted(async () => {
 }
 
 .btn-outline-gray:hover:not(:disabled) { background-color: #f5f5f5; }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 8px;
+  border: none;
+  background-color: #FF303E;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-danger:hover:not(:disabled) { background-color: #e0202e; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #fff1f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #171717;
+  margin: 0 0 8px;
+}
+
+.modal-sub {
+  font-size: 14px;
+  color: #525252;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

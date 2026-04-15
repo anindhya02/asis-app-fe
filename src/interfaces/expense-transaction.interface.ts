@@ -1,12 +1,4 @@
-export type ExpenseCategory =
-  | 'OPERASIONAL'
-  | 'KONSUMSI'
-  | 'TRANSPORTASI'
-  | 'PERLENGKAPAN'
-  | 'PROGRAM_KEGIATAN'
-  | 'GAJI'
-  | 'INFRASTRUKTUR'
-  | 'LAIN_LAIN'
+export type ExpenseCategory = string
 
 export type PaymentMethod = 'CASH' | 'TRANSFER'
 
@@ -14,6 +6,7 @@ export interface ExpenseTransaction {
   id: string
   transactionDate: string
   category: ExpenseCategory
+  subCategory?: string | null
   program: string
   amount: number
   paymentMethod: PaymentMethod
@@ -23,6 +16,8 @@ export interface ExpenseTransaction {
   status: string
   createdByUsername: string
   createdAt: string
+  updatedAt?: string | null
+  updatedByUsername?: string | null
 }
 
 export interface ExpenseTransactionListResponse {

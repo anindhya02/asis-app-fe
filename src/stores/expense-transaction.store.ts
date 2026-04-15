@@ -99,6 +99,80 @@ export const useExpenseTransactionStore = defineStore('expenseTransaction', {
       }
     },
 
+    async updateExpenseTransaction(id: string, formData: FormData) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.put<
+          CommonResponseInterface<ExpenseTransaction>
+        >(`${baseExpenseUrl}/${id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        toast.success(
+          response.data.message || 'Transaksi berhasil diperbarui',
+        )
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteExpenseTransaction(id: string) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.delete<CommonResponseInterface<null>>(
+          `${baseExpenseUrl}/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+
+        toast.success(
+          response.data.message || 'Transaksi berhasil dinonaktifkan',
+        )
+
+        return true
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     async fetchExpenseTransactions(params: {
       startDate?: string
       endDate?: string
