@@ -161,30 +161,6 @@ async function confirmDeleteList() {
   }
 }
 
-const showDeleteModal = ref(false)
-const deleteTargetId = ref<string | null>(null)
-const isDeletingList = ref(false)
-
-function openDeleteModal(transactionId: string) {
-  deleteTargetId.value = transactionId
-  showDeleteModal.value = true
-}
-
-async function confirmDeleteList() {
-  if (!deleteTargetId.value) return
-  isDeletingList.value = true
-  try {
-    await store.deleteIncomeTransaction(deleteTargetId.value)
-    showDeleteModal.value = false
-    deleteTargetId.value = null
-    await fetchData(store.page)
-  } catch {
-    // toast di store
-  } finally {
-    isDeletingList.value = false
-  }
-}
-
 onMounted(() => {
   fetchData()
 })
@@ -288,7 +264,6 @@ onMounted(() => {
                 <th>Tanggal</th>
                 <th>Kategori</th>
                 <th>Nama Donatur</th>
-                <th>Nama Donatur</th>
                 <th>Metode</th>
                 <th class="th-right">Nominal</th>
                 <th>Pencatat</th>
@@ -322,7 +297,6 @@ onMounted(() => {
               <tr v-else v-for="item in store.items" :key="item.id">
                 <td>{{ item.transactionDate }}</td>
                 <td>{{ labelOf(categoryLabel, item.category) }}</td>
-                <td>{{ item.donorName || '-' }}</td>
                 <td>{{ item.donorName || '-' }}</td>
                 <td>{{ labelOf(paymentLabel, item.paymentMethod) }}</td>
                 <td class="td-amount">Rp {{ item.amount.toLocaleString('id-ID') }}</td>
