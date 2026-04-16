@@ -5,10 +5,7 @@ import type { User } from '@/interfaces/user.interface'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import CreateUser from '@/views/admin/CreateUser.vue'
 import ViewUser from '@/views/admin/ViewUser.vue'
-<<<<<<< HEAD
-=======
 import EditUser from '@/views/admin/EditUser.vue'
->>>>>>> dev
 
 const userStore = useUserStore()
 

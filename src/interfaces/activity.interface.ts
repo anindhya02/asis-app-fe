@@ -77,3 +77,25 @@ export interface UpdateActivityRequest {
   endDate: string | null
   description: string
 }
+
+export interface ReplyResponse {
+  replyId: string
+  activityId: string
+  parentReplyId: string | null
+  authorId: string
+  authorName: string
+  authorUsername: string
+  authorRole: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateReplyRequest {
+  content: string
+  parentReplyId?: string | null
+}
+
+export interface UpdateReplyRequest {
+  content: string
+}
