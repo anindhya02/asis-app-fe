@@ -2,9 +2,10 @@
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activity.store'
+import { getCurrentUser } from '@/lib/auth'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import DeleteActivityModal from '@/components/DeleteActivityModal.vue'
-import type { ActivityResponse, AttachmentResponse } from '@/interfaces/activity.interface'
+import type { ActivityResponse, AttachmentResponse, ReplyResponse } from '@/interfaces/activity.interface'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,9 +15,67 @@ const activity = ref<ActivityResponse | null>(null)
 const attachments = ref<AttachmentResponse[]>([])
 const imageAttachments = computed(() => attachments.value.filter((a) => a.type?.startsWith('image/')))
 const fileAttachments = computed(() => attachments.value.filter((a) => !a.type?.startsWith('image/')))
+const currentCarouselImage = computed(() => imageAttachments.value[carouselIndex.value] ?? null)
 const loading = ref(true)
 const notFound = ref(false)
 const showDelete = ref(false)
+
+// Replies
+const replies = ref<ReplyResponse[]>([])
+const repliesState = ref<'loading' | 'success' | 'empty' | 'error'>('loading')
+const replyErrorMessage = ref('')
+
+const newReplyContent = ref('')
+const newReplyError = ref('')
+const creatingReply = ref(false)
+
+const replyingToId = ref<string | null>(null)
+const inlineReplyContent = ref('')
+const inlineReplyError = ref('')
+const creatingInlineReply = ref(false)
+
+const editingReplyId = ref<string | null>(null)
+const editReplyContent = ref('')
+const editReplyError = ref('')
+const updatingReply = ref(false)
+
+const deletingReplyId = ref<string | null>(null)
+const deletingReply = ref(false)
+
+const currentUser = computed(() => getCurrentUser())
+const canWriteReply = computed(() => {
+  const role = currentUser.value?.role?.toUpperCase()
+  return role === 'DONATUR' || role === 'PENGURUS'
+})
+
+const threadedReplies = computed(() => {
+  const byParent = new Map<string, ReplyResponse[]>()
+
+  const sortByTime = (list: ReplyResponse[]) =>
+    [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+
+  for (const reply of replies.value) {
+    const key = reply.parentReplyId ?? '__root__'
+    const bucket = byParent.get(key) ?? []
+    bucket.push(reply)
+    byParent.set(key, bucket)
+  }
+
+  const result: Array<{ reply: ReplyResponse; depth: number }> = []
+
+  const walk = (parentId: string | null, depth: number) => {
+    const key = parentId ?? '__root__'
+    const children = sortByTime(byParent.get(key) ?? [])
+
+    for (const child of children) {
+      result.push({ reply: child, depth })
+      walk(child.replyId, depth + 1)
+    }
+  }
+
+  walk(null, 0)
+  return result
+})
 
 // Carousel
 const carouselIndex = ref(0)
@@ -49,12 +108,15 @@ function resetCarouselTimer() {
 }
 
 function handleCarouselTouchStart(e: TouchEvent) {
-  if (e.touches[0]) carouselTouchStartX.value = e.touches[0].clientX
+  const touch = e.touches[0]
+  if (!touch) return
+  carouselTouchStartX.value = touch.clientX
 }
 
 function handleCarouselTouchEnd(e: TouchEvent) {
-  if (!e.changedTouches[0]) return
-  const dx = e.changedTouches[0].clientX - carouselTouchStartX.value
+  const touch = e.changedTouches[0]
+  if (!touch) return
+  const dx = touch.clientX - carouselTouchStartX.value
   if (dx > 50) carouselPrev()
   else if (dx < -50) carouselNext()
 }
@@ -88,12 +150,15 @@ function lightboxNext() {
 }
 
 function handleTouchStart(e: TouchEvent) {
-  if (e.touches[0]) touchStartX.value = e.touches[0].clientX
+  const touch = e.touches[0]
+  if (!touch) return
+  touchStartX.value = touch.clientX
 }
 
 function handleTouchEnd(e: TouchEvent) {
-  if (!e.changedTouches[0]) return
-  const dx = e.changedTouches[0].clientX - touchStartX.value
+  const touch = e.changedTouches[0]
+  if (!touch) return
+  const dx = touch.clientX - touchStartX.value
   if (dx > 50) lightboxPrev()
   else if (dx < -50) lightboxNext()
 }
@@ -120,6 +185,168 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+function formatDateTime(dateStr: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('')
+}
+
+function isOwnReply(reply: ReplyResponse) {
+  return reply.authorUsername === currentUser.value?.username
+}
+
+function isEdited(reply: ReplyResponse) {
+  return !!reply.updatedAt && reply.updatedAt !== reply.createdAt
+}
+
+async function loadReplies() {
+  repliesState.value = 'loading'
+  replyErrorMessage.value = ''
+
+  try {
+    const data = await store.fetchReplies(id.value)
+    replies.value = data
+    repliesState.value = data.length > 0 ? 'success' : 'empty'
+  } catch (error) {
+    replyErrorMessage.value = error instanceof Error ? error.message : 'Gagal memuat reply'
+    repliesState.value = 'error'
+  }
+}
+
+async function submitReply(parentReplyId: string | null = null) {
+  const content = parentReplyId ? inlineReplyContent.value : newReplyContent.value
+  const trimmed = content.trim()
+
+  if (!trimmed) {
+    if (parentReplyId) inlineReplyError.value = 'Konten reply wajib diisi.'
+    else newReplyError.value = 'Konten reply wajib diisi.'
+    return
+  }
+
+  if (parentReplyId) creatingInlineReply.value = true
+  else creatingReply.value = true
+
+  try {
+    const created = await store.createReply(id.value, {
+      content: trimmed,
+      parentReplyId,
+    })
+
+    replies.value.push(created)
+    repliesState.value = 'success'
+
+    if (parentReplyId) {
+      inlineReplyContent.value = ''
+      inlineReplyError.value = ''
+      replyingToId.value = null
+    } else {
+      newReplyContent.value = ''
+      newReplyError.value = ''
+    }
+  } catch {
+    // toast handled in store
+  } finally {
+    if (parentReplyId) creatingInlineReply.value = false
+    else creatingReply.value = false
+  }
+}
+
+function openInlineReply(replyId: string) {
+  replyingToId.value = replyId
+  inlineReplyContent.value = ''
+  inlineReplyError.value = ''
+}
+
+function cancelInlineReply() {
+  replyingToId.value = null
+  inlineReplyContent.value = ''
+  inlineReplyError.value = ''
+}
+
+function openEdit(reply: ReplyResponse) {
+  editingReplyId.value = reply.replyId
+  editReplyContent.value = reply.content
+  editReplyError.value = ''
+  replyingToId.value = null
+}
+
+function cancelEdit() {
+  editingReplyId.value = null
+  editReplyContent.value = ''
+  editReplyError.value = ''
+}
+
+async function saveEdit(replyId: string) {
+  const trimmed = editReplyContent.value.trim()
+  if (!trimmed) {
+    editReplyError.value = 'Konten reply wajib diisi.'
+    return
+  }
+
+  updatingReply.value = true
+  try {
+    const updated = await store.updateReply(replyId, { content: trimmed })
+    const idx = replies.value.findIndex((r) => r.replyId === replyId)
+    if (idx >= 0) replies.value[idx] = updated
+    cancelEdit()
+  } catch {
+    // toast handled in store
+  } finally {
+    updatingReply.value = false
+  }
+}
+
+function askDelete(replyId: string) {
+  deletingReplyId.value = replyId
+}
+
+function cancelDeleteReply() {
+  deletingReplyId.value = null
+}
+
+function removeReplyTree(replyId: string) {
+  const children = replies.value
+    .filter((r) => r.parentReplyId === replyId)
+    .map((r) => r.replyId)
+
+  for (const childId of children) {
+    removeReplyTree(childId)
+  }
+
+  replies.value = replies.value.filter((r) => r.replyId !== replyId)
+}
+
+async function confirmDeleteReply() {
+  if (!deletingReplyId.value) return
+
+  deletingReply.value = true
+  try {
+    await store.deleteReply(deletingReplyId.value)
+    removeReplyTree(deletingReplyId.value)
+    deletingReplyId.value = null
+    repliesState.value = replies.value.length > 0 ? 'success' : 'empty'
+  } catch {
+    // toast handled in store
+  } finally {
+    deletingReply.value = false
+  }
+}
+
 const STATUS_LABEL: Record<string, string> = {
   CREATED: 'Draft',
   PUBLISHED: 'Diterbitkan',
@@ -142,6 +369,8 @@ async function loadData() {
     } catch {
       attachments.value = []
     }
+
+    await loadReplies()
   } catch {
     notFound.value = true
   } finally {
@@ -246,10 +475,11 @@ onUnmounted(() => {
           <template v-if="imageAttachments.length > 0">
             <Transition name="carousel" mode="out-in">
               <img
-                :key="lightboxIndex"
-                :src="lightboxCurrent?.url ?? ''"
-                :alt="lightboxCurrent?.filename ?? ''"
-                class="lb-img"
+                :key="carouselIndex"
+                :src="currentCarouselImage?.url"
+                :alt="currentCarouselImage?.filename"
+                class="hero-img hero-clickable"
+                @click="openLightbox(carouselIndex)"
               />
             </Transition>
 
@@ -351,6 +581,124 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <section class="card replies-card">
+          <div class="replies-head">
+            <div>
+              <h3 class="replies-title">Diskusi</h3>
+              <p class="replies-sub" v-if="repliesState === 'success'">{{ replies.length }} tanggapan</p>
+            </div>
+            <button class="btn-edit" v-if="repliesState === 'error'" @click="loadReplies">
+              Coba Lagi
+            </button>
+          </div>
+
+          <div v-if="canWriteReply" class="reply-composer">
+            <div class="avatar-chip" :class="currentUser?.role?.toUpperCase() === 'PENGURUS' ? 'avatar-pengurus' : 'avatar-donatur'">
+              {{ getInitials(currentUser?.nama ?? 'User') }}
+            </div>
+            <div class="composer-body">
+              <textarea
+                v-model="newReplyContent"
+                rows="3"
+                class="reply-textarea"
+                :class="{ 'reply-textarea-error': !!newReplyError }"
+                placeholder="Tulis tanggapan atau pertanyaan Anda..."
+                @input="newReplyError = ''"
+              />
+              <p v-if="newReplyError" class="reply-error">{{ newReplyError }}</p>
+              <div class="composer-actions">
+                <button class="btn-primary" :disabled="creatingReply" @click="submitReply()">
+                  {{ creatingReply ? 'Mengirim...' : 'Kirim' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="repliesState === 'loading'" class="replies-list">
+            <div v-for="n in 3" :key="n" class="reply-skeleton"></div>
+          </div>
+
+          <div v-else-if="repliesState === 'error'" class="reply-state">
+            <p>Gagal memuat reply.</p>
+            <p class="reply-state-sub">{{ replyErrorMessage || 'Terjadi kesalahan saat mengambil data.' }}</p>
+          </div>
+
+          <div v-else-if="repliesState === 'empty'" class="reply-state">
+            <p>Belum ada reply.</p>
+            <p class="reply-state-sub">Jadilah yang pertama memberikan tanggapan.</p>
+          </div>
+
+          <div v-else class="replies-list">
+            <article
+              v-for="item in threadedReplies"
+              :key="item.reply.replyId"
+              class="reply-item"
+              :class="{ child: item.depth > 0 }"
+              :style="{ marginLeft: `${Math.min(item.depth, 8) * 42}px` }"
+            >
+              <div class="reply-main">
+                <div class="avatar-chip" :class="item.reply.authorRole.toUpperCase() === 'PENGURUS' ? 'avatar-pengurus' : 'avatar-donatur'">
+                  {{ getInitials(item.reply.authorName) }}
+                </div>
+                <div class="reply-body">
+                  <div class="reply-meta">
+                    <strong>{{ item.reply.authorName }}</strong>
+                    <span class="role-badge" :class="item.reply.authorRole.toUpperCase() === 'PENGURUS' ? 'role-pengurus' : 'role-donatur'">
+                      {{ item.reply.authorRole }}
+                    </span>
+                    <span v-if="isEdited(item.reply)" class="edited-mark">(diedit)</span>
+                  </div>
+                  <p class="reply-time">{{ formatDateTime(isEdited(item.reply) ? item.reply.updatedAt : item.reply.createdAt) }}</p>
+
+                  <div v-if="editingReplyId === item.reply.replyId" class="edit-box">
+                    <textarea
+                      v-model="editReplyContent"
+                      rows="3"
+                      class="reply-textarea"
+                      :class="{ 'reply-textarea-error': !!editReplyError }"
+                      @input="editReplyError = ''"
+                    />
+                    <p v-if="editReplyError" class="reply-error">{{ editReplyError }}</p>
+                    <div class="inline-actions">
+                      <button class="btn-edit" @click="cancelEdit">Batal</button>
+                      <button class="btn-primary" :disabled="updatingReply" @click="saveEdit(item.reply.replyId)">
+                        {{ updatingReply ? 'Menyimpan...' : 'Simpan' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <template v-else>
+                    <p class="reply-content">{{ item.reply.content }}</p>
+                    <div class="reply-actions">
+                      <button v-if="canWriteReply" class="text-action" @click="openInlineReply(item.reply.replyId)">Balas</button>
+                      <button v-if="isOwnReply(item.reply)" class="text-action" @click="openEdit(item.reply)">Edit</button>
+                      <button v-if="isOwnReply(item.reply)" class="text-action danger" @click="askDelete(item.reply.replyId)">Hapus</button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div v-if="replyingToId === item.reply.replyId" class="inline-reply">
+                <textarea
+                  v-model="inlineReplyContent"
+                  rows="2"
+                  class="reply-textarea"
+                  :class="{ 'reply-textarea-error': !!inlineReplyError }"
+                  :placeholder="`Balas komentar ${item.reply.authorName}...`"
+                  @input="inlineReplyError = ''"
+                />
+                <p v-if="inlineReplyError" class="reply-error">{{ inlineReplyError }}</p>
+                <div class="inline-actions">
+                  <button class="btn-edit" @click="cancelInlineReply">Batal</button>
+                  <button class="btn-primary" :disabled="creatingInlineReply" @click="submitReply(item.reply.replyId)">
+                    {{ creatingInlineReply ? 'Mengirim...' : 'Kirim Balasan' }}
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <!-- Footer -->
         <div class="footer-row">
           <button class="btn-back" @click="router.push('/activities')">
@@ -444,6 +792,23 @@ onUnmounted(() => {
       @confirm="handleDeleteConfirm"
       @cancel="showDelete = false"
     />
+
+    <Teleport to="body">
+      <Transition name="lb-fade">
+        <div v-if="deletingReplyId" class="confirm-overlay" @click.self="cancelDeleteReply">
+          <div class="confirm-box">
+            <h3>Hapus Reply?</h3>
+            <p>Reply yang dihapus tidak dapat dikembalikan.</p>
+            <div class="confirm-actions">
+              <button class="btn-edit" :disabled="deletingReply" @click="cancelDeleteReply">Batal</button>
+              <button class="btn-danger-solid" :disabled="deletingReply" @click="confirmDeleteReply">
+                {{ deletingReply ? 'Menghapus...' : 'Hapus' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -1166,5 +1531,311 @@ onUnmounted(() => {
 .lb-img-leave-to {
   opacity: 0;
   transform: scale(1.04);
+}
+
+/* ── Replies ─────────────────────────────────────────── */
+.replies-card {
+  padding-top: 22px;
+}
+
+.replies-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.replies-title {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.replies-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a8a8a;
+}
+
+.reply-composer {
+  display: flex;
+  gap: 12px;
+  border: 1px solid #e9f7f5;
+  background: #fbfffe;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.composer-body {
+  flex: 1;
+}
+
+.reply-textarea {
+  width: 100%;
+  border: 1px solid #d9e2e8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.reply-textarea:focus {
+  border-color: #00c6ac;
+  box-shadow: 0 0 0 3px rgba(0, 198, 172, 0.14);
+}
+
+.reply-textarea-error {
+  border-color: #ef4444;
+}
+
+.reply-error {
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.replies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reply-item {
+  background: #fbfbfb;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  padding: 12px;
+  transition: background 0.2s;
+}
+
+.reply-item:hover {
+  background: #f6fffd;
+}
+
+.reply-item.child {
+  margin-top: 8px;
+  margin-left: 42px;
+}
+
+.reply-main {
+  display: flex;
+  gap: 10px;
+}
+
+.avatar-chip {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.avatar-donatur {
+  background: #e6faf7;
+  color: #00b39c;
+}
+
+.avatar-pengurus {
+  background: #00c6ac;
+  color: #ffffff;
+}
+
+.reply-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.role-donatur {
+  background: #e6faf7;
+  color: #00b39c;
+  border: 1px solid rgba(0, 179, 156, 0.25);
+}
+
+.role-pengurus {
+  background: #00c6ac;
+  color: #ffffff;
+}
+
+.edited-mark {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.reply-time {
+  margin: 4px 0 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.reply-content {
+  margin: 0;
+  color: #444;
+  line-height: 1.6;
+}
+
+.reply-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.text-action {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-action:hover {
+  color: #00b39c;
+}
+
+.text-action.danger:hover {
+  color: #dc2626;
+}
+
+.inline-reply {
+  margin: 8px 0 0 52px;
+  border: 1px solid #d6f6f1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.inline-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reply-children {
+  margin-top: 6px;
+}
+
+.reply-state {
+  border: 1px dashed #dcdcdc;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  color: #525252;
+}
+
+.reply-state-sub {
+  margin: 6px 0 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.reply-skeleton {
+  height: 78px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f3f4f6, #eceff1, #f3f4f6);
+  background-size: 180% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -180% 0; }
+}
+
+/* ── Reply Delete Modal ─────────────────────────────── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9200;
+}
+
+.confirm-box {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #ececec;
+  padding: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+}
+
+.confirm-box h3 {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+}
+
+.confirm-box p {
+  margin: 8px 0 0;
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  color: #525252;
+  font-size: 14px;
+}
+
+.confirm-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-danger-solid {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-danger-solid:hover {
+  background: #dc2626;
+}
+
+.btn-danger-solid:disabled,
+.btn-primary:disabled,
+.btn-edit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 </style>
