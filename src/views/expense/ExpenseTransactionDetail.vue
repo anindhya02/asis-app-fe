@@ -221,16 +221,8 @@ onMounted(async () => {
                 }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Program</span>
-                <span class="detail-value">{{ store.currentItem.program }}</span>
-              </div>
-              <div class="detail-row">
                 <span class="detail-label">Metode Pembayaran</span>
                 <span class="detail-value">{{ label(paymentLabel, store.currentItem.paymentMethod) }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Penerima Dana</span>
-                <span class="detail-value">{{ store.currentItem.penerimaDana }}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Pencatat</span>

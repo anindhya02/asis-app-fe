@@ -22,8 +22,6 @@ const paymentMethodDisplay = ref('')
 const proofFileName = ref('')
 const category = ref('')
 const subCategory = ref('')
-const program = ref('')
-const penerimaDana = ref('')
 const note = ref('')
 
 const errors = ref<Record<string, string>>({})
@@ -31,16 +29,6 @@ const touched = ref<Record<string, boolean>>({})
 
 const subCategoryOptions = computed(() => expenseSubOptionsForMain(category.value))
 const requiresSubCategory = computed(() => subCategoryOptions.value.length > 0)
-
-const programOptions = [
-  { label: 'Rumah Yatim', value: 'Rumah Yatim' },
-  { label: 'Beasiswa Pendidikan', value: 'Beasiswa Pendidikan' },
-  { label: 'Pemberdayaan Ekonomi', value: 'Pemberdayaan Ekonomi' },
-  { label: 'Kesehatan', value: 'Kesehatan' },
-  { label: 'Dakwah', value: 'Dakwah' },
-  { label: 'Operasional Kantor', value: 'Operasional Kantor' },
-  { label: 'Lain-lain', value: 'Lain-lain' },
-]
 
 function applyInitialData() {
   const item = store.currentItem
@@ -51,8 +39,6 @@ function applyInitialData() {
   proofFileName.value = item.proofFilePath?.split('/').pop()?.split('?')[0] ?? 'Bukti transaksi tersimpan'
   category.value = item.category
   subCategory.value = item.subCategory ?? ''
-  program.value = item.program
-  penerimaDana.value = item.penerimaDana
   note.value = item.note ?? ''
 }
 
@@ -74,14 +60,6 @@ function validateField(field: string) {
       if (requiresSubCategory.value && !subCategory.value) e.subCategory = 'Sub-kategori wajib dipilih'
       else delete e.subCategory
       break
-    case 'program':
-      if (!program.value) e.program = 'Program terkait wajib dipilih'
-      else delete e.program
-      break
-    case 'penerimaDana':
-      if (!penerimaDana.value.trim()) e.penerimaDana = 'Penerima dana wajib diisi'
-      else delete e.penerimaDana
-      break
   }
   errors.value = e
 }
@@ -96,7 +74,7 @@ function showError(field: string) {
 }
 
 function validateAll() {
-  const fields = ['category', 'subCategory', 'program', 'penerimaDana']
+  const fields = ['category', 'subCategory']
   fields.forEach((f) => {
     touched.value[f] = true
     validateField(f)
@@ -106,8 +84,6 @@ function validateAll() {
 
 const isFormValid = computed(() =>
   !!category.value &&
-  !!program.value &&
-  !!penerimaDana.value.trim() &&
   (!requiresSubCategory.value || !!subCategory.value),
 )
 
@@ -120,8 +96,6 @@ async function handleSubmit() {
   if (subCategory.value) {
     formData.append('subCategory', subCategory.value)
   }
-  formData.append('program', program.value)
-  formData.append('penerimaDana', penerimaDana.value)
   if (note.value) formData.append('note', note.value)
 
   try {
@@ -172,7 +146,7 @@ onMounted(async () => {
       <template v-else>
         <header class="content-header">
           <h1 class="page-title">Ubah Transaksi Pengeluaran</h1>
-          <p class="page-subtitle">Anda hanya dapat mengubah kategori, program, penerima dana, dan catatan.</p>
+          <p class="page-subtitle">Anda hanya dapat mengubah kategori dan catatan.</p>
         </header>
 
         <form class="card" @submit.prevent="handleSubmit">
@@ -225,34 +199,6 @@ onMounted(async () => {
                 </option>
               </select>
               <p v-if="showError('subCategory')" class="error">{{ showError('subCategory') }}</p>
-            </div>
-
-            <div class="field">
-              <label>Program <span class="required">*</span></label>
-              <select
-                v-model="program"
-                :class="['input', { 'is-error': showError('program') }]"
-                @blur="markTouched('program')"
-                @change="markTouched('program')"
-              >
-                <option value="" disabled>Pilih Program</option>
-                <option v-for="opt in programOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <p v-if="showError('program')" class="error">{{ showError('program') }}</p>
-            </div>
-
-            <div class="field">
-              <label>Penerima Dana <span class="required">*</span></label>
-              <input
-                v-model="penerimaDana"
-                type="text"
-                placeholder="Masukkan penerima dana"
-                :class="['input', { 'is-error': showError('penerimaDana') }]"
-                @blur="markTouched('penerimaDana')"
-              />
-              <p v-if="showError('penerimaDana')" class="error">{{ showError('penerimaDana') }}</p>
             </div>
           </div>
 

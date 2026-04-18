@@ -25,19 +25,8 @@ const router = useRouter()
 const startDate = ref<string>('')
 const endDate = ref<string>('')
 const category = ref<string>('')
-const program = ref<string>('')
 const paymentMethod = ref<string>('')
 const search = ref<string>('')
-
-const programOptions = [
-  'Rumah Yatim',
-  'Beasiswa Pendidikan',
-  'Pemberdayaan Ekonomi',
-  'Kesehatan',
-  'Dakwah',
-  'Operasional Kantor',
-  'Lain-lain',
-]
 
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
@@ -57,7 +46,6 @@ async function fetchData(page = 0) {
     startDate: startDate.value || undefined,
     endDate: endDate.value || undefined,
     category: category.value || undefined,
-    program: program.value || undefined,
     paymentMethod: paymentMethod.value || undefined,
     search: search.value || undefined,
     page,
@@ -73,7 +61,6 @@ function resetFilter() {
   startDate.value = ''
   endDate.value = ''
   category.value = ''
-  program.value = ''
   paymentMethod.value = ''
   search.value = ''
   fetchData(0)
@@ -98,7 +85,6 @@ const hasFilter = computed(
       startDate.value ||
       endDate.value ||
       category.value ||
-      program.value ||
       paymentMethod.value ||
       search.value
     )
@@ -209,13 +195,6 @@ onMounted(() => {
               </option>
             </select>
           </div>
-          <div class="field">
-            <label>Program</label>
-            <select v-model="program" @change="handleFilter">
-              <option value="">Semua Program</option>
-              <option v-for="p in programOptions" :key="p" :value="p">{{ p }}</option>
-            </select>
-          </div>
         </div>
 
         <div class="filter-bottom">
@@ -236,7 +215,7 @@ onMounted(() => {
               v-model="search"
               class="search-input"
               type="text"
-              placeholder="Cari berdasarkan penerima, program, atau catatan..."
+              placeholder="Cari berdasarkan catatan..."
               @input="handleFilter"
             />
           </div>
@@ -265,10 +244,8 @@ onMounted(() => {
               <tr>
                 <th>Tanggal</th>
                 <th>Kategori</th>
-                <th>Program</th>
                 <th>Metode</th>
                 <th class="th-right">Nominal</th>
-                <th>Penerima</th>
                 <th>Pencatat</th>
                 <th class="th-center">Aksi</th>
               </tr>
@@ -277,13 +254,13 @@ onMounted(() => {
               <!-- Skeleton rows while loading -->
               <template v-if="store.loading">
                 <tr v-for="n in store.size" :key="'skel-' + n" class="skeleton-row">
-                  <td v-for="c in 8" :key="c"><div class="skeleton-cell" /></td>
+                  <td v-for="c in 6" :key="c"><div class="skeleton-cell" /></td>
                 </tr>
               </template>
 
               <!-- Empty state -->
               <tr v-else-if="store.items.length === 0">
-                <td colspan="8" class="empty-state">
+                <td colspan="6" class="empty-state">
                   <div class="empty-inner">
                     <div class="empty-icon-wrap">
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
@@ -316,10 +293,8 @@ onMounted(() => {
               >
                 <td>{{ item.transactionDate }}</td>
                 <td>{{ categoryCell(item) }}</td>
-                <td>{{ item.program }}</td>
                 <td>{{ labelOf(paymentLabel, item.paymentMethod) }}</td>
                 <td class="td-amount">{{ formatCurrency(item.amount) }}</td>
-                <td>{{ item.penerimaDana }}</td>
                 <td class="td-muted">{{ item.createdByUsername }}</td>
                 <td class="actions-cell" @click.stop>
                   <!-- View -->
@@ -504,7 +479,7 @@ onMounted(() => {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 16px;
 }
 

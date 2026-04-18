@@ -7,10 +7,8 @@ export interface ExpenseTransaction {
   transactionDate: string
   category: ExpenseCategory
   subCategory?: string | null
-  program: string
   amount: number
   paymentMethod: PaymentMethod
-  penerimaDana: string
   note?: string | null
   proofFilePath: string
   status: string

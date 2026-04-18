@@ -17,11 +17,9 @@ const today = new Date().toISOString().slice(0, 10)
 const transactionDate = ref<string>(today)
 const category = ref<string>('')
 const subCategory = ref<string>('')
-const program = ref<string>('')
 const paymentMethod = ref<string>('')
 const nominalDisplay = ref<string>('')
 const amount = ref<string>('')
-const penerimaDana = ref<string>('')
 const note = ref<string>('')
 const proofFile = ref<File | null>(null)
 
@@ -36,16 +34,6 @@ const touched = ref<Record<string, boolean>>({})
 const categoryOptions = EXPENSE_MAIN_CATEGORY_OPTIONS
 
 const subCategoryOptions = computed(() => expenseSubOptionsForMain(category.value))
-
-const programOptions = [
-  { label: 'Rumah Yatim', value: 'Rumah Yatim' },
-  { label: 'Beasiswa Pendidikan', value: 'Beasiswa Pendidikan' },
-  { label: 'Pemberdayaan Ekonomi', value: 'Pemberdayaan Ekonomi' },
-  { label: 'Kesehatan', value: 'Kesehatan' },
-  { label: 'Dakwah', value: 'Dakwah' },
-  { label: 'Operasional Kantor', value: 'Operasional Kantor' },
-  { label: 'Lain-lain', value: 'Lain-lain' },
-]
 
 const paymentMethodOptions = [
   { label: 'Tunai', value: 'CASH' },
@@ -128,10 +116,6 @@ function validateField(field: string) {
       if (!subCategory.value) e.subCategory = 'Sub-kategori wajib dipilih'
       else delete e.subCategory
       break
-    case 'program':
-      if (!program.value) e.program = 'Program terkait wajib dipilih'
-      else delete e.program
-      break
     case 'paymentMethod':
       if (!paymentMethod.value) e.paymentMethod = 'Metode pembayaran wajib dipilih'
       else delete e.paymentMethod
@@ -141,10 +125,6 @@ function validateField(field: string) {
       else if (isNaN(Number(amount.value)) || Number(amount.value) <= 0)
         e.amount = 'Nominal harus lebih dari 0'
       else delete e.amount
-      break
-    case 'penerimaDana':
-      if (!penerimaDana.value.trim()) e.penerimaDana = 'Penerima dana wajib diisi'
-      else delete e.penerimaDana
       break
     case 'proofFile':
       if (!proofFile.value) e.proofFile = 'Bukti transaksi wajib diupload'
@@ -169,10 +149,8 @@ function validateAll(): boolean {
     'transactionDate',
     'category',
     'subCategory',
-    'program',
     'paymentMethod',
     'amount',
-    'penerimaDana',
     'proofFile',
   ]
   fields.forEach((f) => {
@@ -187,12 +165,10 @@ const isFormValid = computed(() =>
   !!transactionDate.value &&
   !!category.value &&
   !!subCategory.value &&
-  !!program.value &&
   !!paymentMethod.value &&
   !!amount.value &&
   !isNaN(Number(amount.value)) &&
   Number(amount.value) > 0 &&
-  !!penerimaDana.value.trim() &&
   !!proofFile.value
 )
 
@@ -206,10 +182,8 @@ async function handleSubmit() {
   formData.append('transactionDate', transactionDate.value)
   formData.append('category', category.value)
   formData.append('subCategory', subCategory.value)
-  formData.append('program', program.value)
   formData.append('paymentMethod', paymentMethod.value)
   formData.append('amount', amount.value)
-  formData.append('penerimaDana', penerimaDana.value)
   if (note.value) formData.append('note', note.value)
   if (proofFile.value) formData.append('proofFile', proofFile.value)
 
@@ -312,23 +286,6 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <!-- Program Terkait -->
-            <div class="field">
-              <label>Program Terkait <span class="required">*</span></label>
-              <select
-                v-model="program"
-                :class="['form-input', 'form-select', { 'is-error': showError('program') }]"
-                @blur="markTouched('program')"
-                @change="markTouched('program')"
-              >
-                <option value="" disabled>Pilih Program</option>
-                <option v-for="opt in programOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <p v-if="showError('program')" class="error-text">{{ showError('program') }}</p>
-            </div>
-
             <!-- Metode Pembayaran + Nominal -->
             <div class="field-row">
               <div class="field field-half">
@@ -363,19 +320,6 @@ async function handleSubmit() {
                 </div>
                 <p v-if="showError('amount')" class="error-text">{{ showError('amount') }}</p>
               </div>
-            </div>
-
-            <!-- Penerima Dana -->
-            <div class="field">
-              <label>Penerima Dana <span class="required">*</span></label>
-              <input
-                v-model="penerimaDana"
-                type="text"
-                placeholder="Masukkan nama penerima dana"
-                :class="['form-input', { 'is-error': showError('penerimaDana') }]"
-                @blur="markTouched('penerimaDana')"
-              />
-              <p v-if="showError('penerimaDana')" class="error-text">{{ showError('penerimaDana') }}</p>
             </div>
           </div>
 

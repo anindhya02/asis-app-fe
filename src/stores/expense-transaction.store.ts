@@ -177,7 +177,6 @@ export const useExpenseTransactionStore = defineStore('expenseTransaction', {
       startDate?: string
       endDate?: string
       category?: string
-      program?: string
       paymentMethod?: string
       search?: string
       page?: number
