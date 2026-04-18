@@ -6,7 +6,7 @@ import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import {
   EXPENSE_CATEGORY_FILTER_OPTIONS,
   expenseSubOptionsForMain,
-} from '@/lib/expense-categories'
+} from '@/views/expense/ExpenseTransactionCreate.vue'
 
 const route = useRoute()
 const router = useRouter()

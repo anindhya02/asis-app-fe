@@ -10,7 +10,7 @@ import type { ExpenseTransaction } from '@/interfaces/expense-transaction.interf
 import {
   EXPENSE_CATEGORY_FILTER_OPTIONS,
   formatExpenseCategoryDisplay,
-} from '@/lib/expense-categories'
+} from '@/views/expense/ExpenseTransactionCreate.vue'
 
 const isAuthorized = computed(() => !isDonatur())
 const canDeleteExpense = computed(() => isKetua())
