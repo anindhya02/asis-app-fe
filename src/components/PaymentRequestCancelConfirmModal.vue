@@ -1,42 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
 defineProps<{
   isOpen: boolean
-  title: string
-  category: string
-  program: string
+  loading?: boolean
 }>()
 
-const emit = defineEmits<{
-  confirm: []
-  cancel: []
-}>()
-
-const loading = ref(false)
-
-async function handleDelete() {
-  loading.value = true
-  emit('confirm')
-}
-
-function handleCancel() {
-  if (!loading.value) emit('cancel')
-}
-
-function resetLoading() {
-  loading.value = false
-}
-
-defineExpose({ resetLoading })
+defineEmits<{ (e: 'confirm'): void; (e: 'cancel'): void }>()
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="backdrop">
-      <div v-if="isOpen" class="backdrop" @click.self="handleCancel">
+      <div v-if="isOpen" class="backdrop" @click.self="$emit('cancel')">
         <Transition name="modal">
-          <div v-if="isOpen" class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-activity-title">
+          <div v-if="isOpen" class="modal" role="dialog" aria-modal="true" aria-labelledby="cancel-pr-title">
             <div class="icon-wrap" aria-hidden="true">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
@@ -45,23 +21,12 @@ defineExpose({ resetLoading })
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <h2 id="delete-activity-title" class="title">Yakin menghapus postingan ini?</h2>
-            <p class="sub">Postingan akan dihapus dari sistem.</p>
-            <div class="modal-info">
-              <p class="info-title">{{ title }}</p>
-              <p class="info-meta">{{ category }} &mdash; {{ program }}</p>
-            </div>
+            <h2 id="cancel-pr-title" class="title">Yakin membatalkan ticket ini?</h2>
+            <p class="sub">Status ticket akan diubah menjadi Dibatalkan.</p>
             <div class="buttons">
-              <button type="button" class="btn-cancel" :disabled="loading" @click="handleCancel">Batal</button>
-              <button type="button" class="btn-confirm" :disabled="loading" @click="handleDelete">
-                <template v-if="loading">
-                  <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  </svg>
-                  Menghapus...
-                </template>
-                <template v-else>Hapus</template>
+              <button type="button" class="btn-cancel" :disabled="loading" @click="$emit('cancel')">Tidak</button>
+              <button type="button" class="btn-confirm" :disabled="loading" @click="$emit('confirm')">
+                {{ loading ? 'Memproses…' : 'Ya, batalkan' }}
               </button>
             </div>
           </div>
@@ -88,7 +53,7 @@ defineExpose({ resetLoading })
   align-items: center;
   padding: 36px 40px 40px;
   gap: 12px;
-  width: min(460px, calc(100vw - 32px));
+  width: min(392px, calc(100vw - 32px));
   background: #fff5f5;
   box-shadow:
     0px 100px 126px rgba(0, 0, 0, 0.12),
@@ -122,34 +87,7 @@ defineExpose({ resetLoading })
   line-height: 1.45;
   text-align: center;
   color: #525252;
-  margin: 0;
-}
-
-.modal-info {
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin: 4px 0 8px;
-}
-
-.info-title {
-  font-family: 'Manrope', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  color: #171717;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.info-meta {
-  font-family: 'Manrope', sans-serif;
-  font-size: 12px;
-  color: #737373;
-  margin: 4px 0 0;
+  margin: 0 0 8px;
 }
 
 .buttons {
@@ -157,7 +95,6 @@ defineExpose({ resetLoading })
   gap: 8px;
   width: 100%;
   justify-content: center;
-  margin-top: 8px;
 }
 
 .btn-cancel,
@@ -171,10 +108,6 @@ defineExpose({ resetLoading })
   font-size: 16px;
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.12s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
 .btn-cancel:disabled,
@@ -188,7 +121,7 @@ defineExpose({ resetLoading })
   color: #070708;
   border: 1.5px solid #e5e7eb;
 }
-.btn-cancel:hover:not(:disabled) {
+.btn-cancel:hover {
   background: #f5f5f5;
 }
 
@@ -197,25 +130,12 @@ defineExpose({ resetLoading })
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
 }
-.btn-confirm:hover:not(:disabled) {
+.btn-confirm:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(185, 28, 28, 0.5);
 }
-.btn-confirm:active:not(:disabled) {
+.btn-confirm:active {
   transform: translateY(0);
-}
-
-.spin {
-  animation: spinner 1s linear infinite;
-}
-
-@keyframes spinner {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .backdrop-enter-active,
