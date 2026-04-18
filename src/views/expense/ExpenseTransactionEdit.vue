@@ -224,15 +224,31 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.layout { display: flex; min-height: 100vh; background: #f5f5f5; }
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .content { flex: 1; padding: 40px 32px; overflow-y: auto; }
 .content-header { max-width: 1100px; margin: 0 auto 20px; }
-.page-title { margin: 0 0 4px; font-size: 32px; font-weight: 600; color: #171717; font-family: 'Poppins', sans-serif; }
+.page-title {
+  margin: 0 0 4px;
+  font-size: 32px;
+  font-weight: 600;
+  color: #171717;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 .page-subtitle { margin: 0; color: #525252; font-size: 14px; }
 .card { max-width: 1100px; margin: 0 auto; padding: 24px; border-radius: 12px; border: 1px solid #e5e5e5; background: #fff; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-label { font-size: 13px; font-weight: 600; color: #404040; }
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #171717;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .required { color: #ff303e; }
 .input, .input-disabled {
   height: 42px;
@@ -241,17 +257,29 @@ label { font-size: 13px; font-weight: 600; color: #404040; }
   padding: 0 12px;
   font-size: 14px;
   color: #171717;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .input:focus { outline: none; border-color: #00c6ac; box-shadow: 0 0 0 1px #00c6ac; }
 .input.is-error { border-color: #ff303e; }
 .input-disabled { background: #f5f5f5; color: #737373; }
-.textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.textarea {
+  height: auto;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .field-note { margin-top: 16px; }
 .error { margin: 0; font-size: 12px; color: #ff303e; }
 .error-banner { margin: 12px 0 0; color: #ff303e; font-size: 13px; }
 .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .btn-outline, .btn-primary {
-  height: 42px; border-radius: 8px; padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  height: 42px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
 }
 .btn-outline { border: 1px solid #d4d4d4; background: #fff; color: #404040; }
 .btn-primary { border: none; background: #00c6ac; color: #fff; }
