@@ -26,14 +26,11 @@ export interface BreakdownItem {
 export interface PaymentRequest {
   id: string
   title: string
-  purpose: string
   amount: number
   expenseCategory: ExpenseCategory
-  program?: string | null
   subCategory?: string | null
   neededDate?: string | null
   paymentMethod?: PaymentMethod | null
-  recipient?: string | null
   notes?: string | null
   supportingDocumentUrl?: string | null
   supportingDocumentName?: string | null

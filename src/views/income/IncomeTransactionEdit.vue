@@ -129,7 +129,7 @@ function validateField(field: string) {
       else delete e.category
       break
     case 'sourceType':
-      if (!sourceType.value) e.sourceType = 'Sumber donasi wajib dipilih'
+      if (!sourceType.value) e.sourceType = 'Tipe donatur wajib dipilih'
       else delete e.sourceType
       break
     case 'paymentMethod':
@@ -342,14 +342,14 @@ async function handleSubmit() {
               </div>
 
               <div class="field">
-                <label>Sumber Donasi <span class="required">*</span></label>
+                <label>Tipe Donatur <span class="required">*</span></label>
                 <select
                   v-model="sourceType"
                   :class="['form-input', 'form-select', { 'is-error': showError('sourceType') }]"
                   @blur="markTouched('sourceType')"
                   @change="markTouched('sourceType')"
                 >
-                  <option value="" disabled>Pilih Sumber</option>
+                  <option value="" disabled>Pilih tipe donatur</option>
                   <option v-for="opt in sourceTypeOptions" :key="opt.value" :value="opt.value">
                     {{ opt.label }}
                   </option>

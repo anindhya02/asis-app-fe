@@ -2,12 +2,13 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
-import { isPengurus } from '@/lib/rbac'
+import { isKetua, isPengurus } from '@/lib/rbac'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 
 const store = usePaymentRequestStore()
 const router = useRouter()
 const userIsPengurus = computed(() => isPengurus())
+const userIsKetua = computed(() => isKetua())
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
@@ -55,6 +56,12 @@ function formatDate(dateStr: string) {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
+}
+
+function formatSubmissionDate(needed?: string | null, created?: string) {
+  if (needed) return needed
+  if (created) return formatDate(created)
+  return '-'
 }
 
 async function fetchData(page = 0) {
@@ -158,7 +165,7 @@ onMounted(() => {
             <label>Status</label>
             <select v-model="status" @change="handleFilter">
               <option value="">Semua Status</option>
-              <option value="DRAFT">Draft</option>
+              <option v-if="!userIsKetua" value="DRAFT">Draft</option>
               <option value="PENDING_REVIEW">Pending</option>
               <option value="REVISION_REQUESTED">Revision</option>
               <option value="APPROVED">Approved</option>
@@ -178,7 +185,7 @@ onMounted(() => {
               v-model="search"
               class="search-input"
               type="text"
-              placeholder="Cari berdasarkan judul atau tujuan..."
+              placeholder="Cari berdasarkan judul atau catatan..."
               @input="handleFilter"
             />
           </div>
@@ -210,7 +217,7 @@ onMounted(() => {
                 <th>Kategori</th>
                 <th class="th-right">Nominal</th>
                 <th class="th-center">Status</th>
-                <th>Tujuan</th>
+                <th>Tanggal Pengajuan</th>
                 <th class="th-center">Aksi</th>
               </tr>
             </thead>
@@ -257,7 +264,7 @@ onMounted(() => {
                     {{ labelOf(statusLabel, item.status) }}
                   </span>
                 </td>
-                <td class="td-purpose">{{ item.purpose }}</td>
+                <td class="td-date-submitted">{{ formatSubmissionDate(item.neededDate, item.createdAt) }}</td>
                 <td class="actions-cell">
                   <!-- View -->
                   <button type="button" class="icon-btn"
@@ -566,11 +573,9 @@ select:focus {
   text-overflow: ellipsis;
 }
 
-.td-purpose {
+.td-date-submitted {
   max-width: 140px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* Status badges */

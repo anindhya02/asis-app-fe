@@ -13,11 +13,9 @@ const title = ref<string>('')
 const neededDate = ref<string>('')
 const expenseCategory = ref<string>('')
 const subCategory = ref<string>('')
-const program = ref<string>('')
 const nominalDisplay = ref<string>('')
 const amount = ref<string>('')
 const paymentMethod = ref<string>('')
-const purpose = ref<string>('')
 const notes = ref<string>('')
 const supportingDocument = ref<File | null>(null)
 
@@ -202,44 +200,31 @@ function validateField(field: string) {
       break
     case 'neededDate':
       if (!neededDate.value) {
-        e.neededDate = 'Tanggal kebutuhan dana wajib diisi'
+        e.neededDate = 'Tanggal pengajuan wajib diisi'
       } else {
-        const today = new Date().toISOString().split('T')[0]!
-        if (neededDate.value < today) {
-          e.neededDate = 'Tanggal kebutuhan dana tidak boleh kurang dari hari ini'
-        } else {
-          delete e.neededDate
-        }
+        delete e.neededDate
       }
       break
     case 'expenseCategory':
-      if (!expenseCategory.value) e.expenseCategory = 'Kategori pengeluaran wajib dipilih'
+      if (!expenseCategory.value) e.expenseCategory = 'Kategori wajib dipilih'
       else delete e.expenseCategory
       break
-    case 'subCategory':
-      if (!subCategory.value) e.subCategory = 'Sub-kategori wajib dipilih'
-      else delete e.subCategory
-      break
-    case 'program':
-      if (!program.value.trim()) e.program = 'Program terkait wajib dipilih'
-      else delete e.program
-      break
     case 'amount':
-      if (!amount.value) e.amount = 'Nominal wajib diisi'
+      if (!amount.value) e.amount = 'Nominal penggunaan dana wajib diisi'
       else if (isNaN(Number(amount.value)) || Number(amount.value) <= 0)
-        e.amount = 'Nominal harus berupa angka dan lebih dari 0'
+        e.amount = 'Nominal penggunaan dana harus berupa angka dan lebih dari 0'
       else delete e.amount
+      break
+    case 'subCategory':
+      if (!subCategory.value.trim()) e.subCategory = 'Sub-kategori wajib dipilih'
+      else delete e.subCategory
       break
     case 'paymentMethod':
       if (!paymentMethod.value) e.paymentMethod = 'Metode pembayaran wajib dipilih'
       else delete e.paymentMethod
       break
-    case 'purpose':
-      if (!purpose.value.trim()) e.purpose = 'Penerima dana wajib diisi'
-      else delete e.purpose
-      break
     case 'supportingDocument':
-      if (!supportingDocument.value) e.supportingDocument = 'Dokumen pendukung wajib diunggah sebelum submit'
+      if (!supportingDocument.value) e.supportingDocument = 'Dokumen pendukung wajib diunggah'
       else delete e.supportingDocument
       break
   }
@@ -267,7 +252,7 @@ function validateBreakdowns(): boolean {
     }
   }
   if (!valid) {
-    e.breakdowns = 'Semua deskripsi rincian harus diisi'
+    e.breakdowns = 'Rincian penggunaan dana wajib diisi lengkap (deskripsi dan nominal per item)'
   } else {
     delete e.breakdowns
   }
@@ -275,7 +260,7 @@ function validateBreakdowns(): boolean {
   // Check total matches amount
   if (amount.value && parseInt(amount.value) > 0 && breakdownTotal.value > 0) {
     if (breakdownTotal.value !== parseInt(amount.value)) {
-      e.breakdownTotal = 'Total rincian harus sama dengan nominal dana diajukan'
+      e.breakdownTotal = 'Total rincian harus sama dengan nominal penggunaan dana'
       valid = false
     } else {
       delete e.breakdownTotal
@@ -288,7 +273,15 @@ function validateBreakdowns(): boolean {
 
 // Submit validation
 function validateAllForSubmit(): boolean {
-  const fields = ['title', 'neededDate', 'expenseCategory', 'subCategory', 'program', 'amount', 'paymentMethod', 'purpose', 'supportingDocument']
+  const fields = [
+    'title',
+    'neededDate',
+    'expenseCategory',
+    'subCategory',
+    'amount',
+    'paymentMethod',
+    'supportingDocument',
+  ]
   fields.forEach((f) => {
     touched.value[f] = true
     validateField(f)
@@ -312,7 +305,7 @@ function validateForDraft(): boolean {
   validateField('expenseCategory')
 
   if (!trimmedTitle || !neededDate.value || !expenseCategory.value) {
-    toast.warning('Minimal isi judul, tanggal, kategori untuk menyimpan draft.')
+    toast.warning('Minimal isi judul, tanggal pengajuan, dan kategori untuk menyimpan draft.')
     return false
   }
 
@@ -328,10 +321,8 @@ function buildFormData(isSubmit: boolean): FormData {
   if (neededDate.value) formData.append('neededDate', neededDate.value)
   if (expenseCategory.value) formData.append('expenseCategory', expenseCategory.value)
   if (subCategory.value) formData.append('subCategory', subCategory.value)
-  if (program.value.trim()) formData.append('program', program.value.trim())
   if (amount.value) formData.append('amount', amount.value)
   if (paymentMethod.value) formData.append('paymentMethod', paymentMethod.value)
-  if (purpose.value.trim()) formData.append('purpose', purpose.value.trim())
   if (notes.value.trim()) formData.append('notes', notes.value.trim())
   formData.append('submit', String(isSubmit))
 
@@ -372,6 +363,7 @@ async function handleSaveDraft() {
 
 function onCategoryChange() {
   subCategory.value = ''
+  clearError('subCategory')
   markTouched('expenseCategory')
 }
 </script>
@@ -422,9 +414,9 @@ function onCategoryChange() {
           <p v-if="showError('title')" class="error-text">{{ showError('title') }}</p>
         </div>
 
-        <!-- Tanggal Kebutuhan Dana -->
+        <!-- Tanggal Pengajuan -->
         <div class="field">
-          <label>Tanggal Kebutuhan Dana <span class="required">*</span></label>
+          <label>Tanggal Pengajuan <span class="required">*</span></label>
           <input
             v-model="neededDate"
             type="date"
@@ -437,7 +429,7 @@ function onCategoryChange() {
         <!-- Kategori + Sub-Kategori row -->
         <div class="field-row">
           <div class="field">
-            <label>Kategori Pengeluaran <span class="required">*</span></label>
+            <label>Kategori <span class="required">*</span></label>
             <select
               v-model="expenseCategory"
               :class="['form-input', 'form-select', { 'is-error': showError('expenseCategory') }]"
@@ -458,7 +450,6 @@ function onCategoryChange() {
               :class="['form-input', 'form-select', { 'is-error': showError('subCategory') }]"
               :disabled="!expenseCategory"
               @blur="markTouched('subCategory')"
-              @change="markTouched('subCategory')"
             >
               <option value="" disabled>Pilih Sub-Kategori</option>
               <option v-for="opt in subCategoryOptions" :key="opt.value" :value="opt.value">
@@ -469,23 +460,10 @@ function onCategoryChange() {
           </div>
         </div>
 
-        <!-- Program Terkait -->
-        <div class="field">
-          <label>Program Terkait <span class="required">*</span></label>
-          <input
-            v-model="program"
-            type="text"
-            placeholder="Masukkan Program Terkait"
-            :class="['form-input', { 'is-error': showError('program') }]"
-            @blur="markTouched('program')"
-          />
-          <p v-if="showError('program')" class="error-text">{{ showError('program') }}</p>
-        </div>
-
         <!-- Nominal + Metode Pembayaran row -->
         <div class="field-row">
           <div class="field">
-            <label>Nominal Dana Diajukan <span class="required">*</span></label>
+            <label>Nominal Penggunaan Dana <span class="required">*</span></label>
             <div class="amount-wrap" :class="{ 'is-error': showError('amount') }">
               <span class="prefix">Rp</span>
               <input
@@ -506,28 +484,14 @@ function onCategoryChange() {
               v-model="paymentMethod"
               :class="['form-input', 'form-select', { 'is-error': showError('paymentMethod') }]"
               @blur="markTouched('paymentMethod')"
-              @change="markTouched('paymentMethod')"
             >
-              <option value="" disabled>Masukkan Metode Pembayaran</option>
+              <option value="" disabled>Pilih Metode Pembayaran</option>
               <option v-for="opt in paymentMethodOptions" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </option>
             </select>
             <p v-if="showError('paymentMethod')" class="error-text">{{ showError('paymentMethod') }}</p>
           </div>
-        </div>
-
-        <!-- Tujuan Penerima Dana -->
-        <div class="field">
-          <label>Tujuan Penerima Dana <span class="required">*</span></label>
-          <input
-            v-model="purpose"
-            type="text"
-            placeholder="Masukkan Tujuan Penerima Dana"
-            :class="['form-input', { 'is-error': showError('purpose') }]"
-            @blur="markTouched('purpose')"
-          />
-          <p v-if="showError('purpose')" class="error-text">{{ showError('purpose') }}</p>
         </div>
 
         <!-- Upload Dokumen Pendukung -->
@@ -544,14 +508,14 @@ function onCategoryChange() {
             @click="fileInputRef?.click()"
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              :stroke="showError('supportingDocument') ? '#ff303e' : '#a1a1a1'" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              stroke="#a1a1a1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
               style="margin-bottom:10px">
               <polyline points="16 16 12 12 8 16" />
               <line x1="12" y1="12" x2="12" y2="21" />
               <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
             </svg>
-            <p class="upload-text">Upload dokumen pendukung (wajib untuk submit)</p>
-            <p class="upload-sub">Klik atau seret file — PDF, JPG, PNG (maks. 5MB)</p>
+            <p class="upload-text">Unggah dokumen pendukung</p>
+            <p class="upload-sub">Klik atau seret file — PDF, JPG, PNG, atau WebP (maks. 5MB)</p>
             <input
               ref="fileInputRef"
               type="file"
@@ -560,8 +524,9 @@ function onCategoryChange() {
               @change="onFileChange"
             />
           </div>
+          <p v-if="showError('supportingDocument')" class="error-text">{{ showError('supportingDocument') }}</p>
 
-          <div v-else class="file-preview">
+          <div v-if="supportingDocument" class="file-preview">
             <div class="file-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                 stroke="#525252" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -581,12 +546,11 @@ function onCategoryChange() {
             </button>
           </div>
 
-          <p v-if="showError('supportingDocument')" class="error-text">{{ showError('supportingDocument') }}</p>
         </div>
 
         <!-- Catatan Tambahan -->
         <div class="field">
-          <label>Catatan Tambahan</label>
+          <label>Catatan Tambahan <span class="optional-hint">(opsional)</span></label>
           <textarea
             v-model="notes"
             rows="4"
@@ -598,7 +562,7 @@ function onCategoryChange() {
 
       <!-- Rincian Penggunaan Dana Card -->
       <section class="card card--breakdown">
-        <h2 class="breakdown-title">Rincian Penggunaan Dana</h2>
+        <h2 class="breakdown-title">Rincian Penggunaan Dana <span class="required">*</span></h2>
 
         <!-- Header row -->
         <div class="breakdown-header">
@@ -798,6 +762,12 @@ label {
 }
 
 .required { color: #ff303e; }
+
+.optional-hint {
+  font-weight: 500;
+  font-size: 12px;
+  color: #737373;
+}
 
 /* ── Input ── */
 .form-input {
