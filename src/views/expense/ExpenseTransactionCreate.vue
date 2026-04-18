@@ -1,12 +1,121 @@
+<script lang="ts">
+/** Kategori & sub-kategori pengeluaran (dipakai juga di list / detail / edit). */
+export const EXPENSE_MAIN_CATEGORY_OPTIONS = [
+  { label: 'Operasional', value: 'OPERASIONAL' },
+  { label: 'Gaji & honor', value: 'GAJI_HONOR' },
+  { label: 'Program', value: 'PROGRAM' },
+  { label: 'Utilitas', value: 'UTILITAS' },
+  { label: 'Pemeliharaan', value: 'PEMELIHARAAN' },
+  { label: 'Transportasi', value: 'TRANSPORTASI' },
+] as const
+
+export type ExpenseMainCategoryValue = (typeof EXPENSE_MAIN_CATEGORY_OPTIONS)[number]['value']
+
+export const EXPENSE_SUB_OPTIONS_BY_MAIN: Record<
+  ExpenseMainCategoryValue,
+  { label: string; value: string }[]
+> = {
+  OPERASIONAL: [
+    { label: 'Alat tulis kantor', value: 'ALAT_TULIS_KANTOR' },
+    { label: 'Perlengkapan', value: 'PERLENGKAPAN' },
+    { label: 'Konsumsi', value: 'KONSUMSI' },
+    { label: 'Cetak & fotokopi', value: 'CETAK_FOTOKOPI' },
+  ],
+  GAJI_HONOR: [
+    { label: 'Gaji tetap', value: 'GAJI_TETAP' },
+    { label: 'Honor kegiatan', value: 'HONOR_KEGIATAN' },
+    { label: 'Insentif', value: 'INSENTIF' },
+    { label: 'THR', value: 'THR' },
+  ],
+  PROGRAM: [
+    { label: 'Pendidikan', value: 'PENDIDIKAN' },
+    { label: 'Sosial', value: 'SOSIAL' },
+    { label: 'Kesehatan', value: 'KESEHATAN' },
+    { label: 'Dakwah', value: 'DAKWAH' },
+    { label: 'Pembangunan', value: 'PEMBANGUNAN' },
+  ],
+  UTILITAS: [
+    { label: 'Listrik', value: 'LISTRIK' },
+    { label: 'Air', value: 'AIR' },
+    { label: 'Internet', value: 'INTERNET' },
+    { label: 'Telepon', value: 'TELEPON' },
+  ],
+  PEMELIHARAAN: [
+    { label: 'Gedung', value: 'GEDUNG' },
+    { label: 'Kendaraan', value: 'KENDARAAN' },
+    { label: 'Peralatan', value: 'PERALATAN' },
+    { label: 'Taman', value: 'TAMAN' },
+  ],
+  TRANSPORTASI: [
+    { label: 'BBM', value: 'BBM' },
+    { label: 'Sewa kendaraan', value: 'SEWA_KENDARAAN' },
+    { label: 'Tol & parkir', value: 'TOL_PARKIR' },
+    { label: 'Tiket perjalanan', value: 'TIKET_PERJALANAN' },
+  ],
+}
+
+const MAIN_LABEL: Record<string, string> = Object.fromEntries(
+  EXPENSE_MAIN_CATEGORY_OPTIONS.map((o) => [o.value, o.label]),
+)
+
+export const EXPENSE_SUB_LABEL: Record<string, string> = Object.values(
+  EXPENSE_SUB_OPTIONS_BY_MAIN,
+).reduce<Record<string, string>>((acc, opts) => {
+  for (const o of opts) acc[o.value] = o.label
+  return acc
+}, {})
+
+export const LEGACY_EXPENSE_CATEGORY_LABEL: Record<string, string> = {
+  OPERASIONAL: 'Operasional',
+  KONSUMSI: 'Konsumsi',
+  TRANSPORTASI: 'Transportasi',
+  PERLENGKAPAN: 'Perlengkapan',
+  PROGRAM_KEGIATAN: 'Program Kegiatan',
+  GAJI: 'Gaji',
+  INFRASTRUKTUR: 'Infrastruktur',
+  LAIN_LAIN: 'Lain-lain',
+}
+
+export function expenseSubOptionsForMain(main: string) {
+  return EXPENSE_SUB_OPTIONS_BY_MAIN[main as ExpenseMainCategoryValue] ?? []
+}
+
+export function formatExpenseCategoryDisplay(
+  category: string,
+  subCategory?: string | null,
+): string {
+  const sub = subCategory?.trim()
+  if (sub && EXPENSE_SUB_LABEL[sub]) {
+    const main = MAIN_LABEL[category] ?? LEGACY_EXPENSE_CATEGORY_LABEL[category] ?? category
+    return `${main} — ${EXPENSE_SUB_LABEL[sub]}`
+  }
+  if (MAIN_LABEL[category]) return MAIN_LABEL[category]
+  return LEGACY_EXPENSE_CATEGORY_LABEL[category] ?? category
+}
+
+const LEGACY_CATEGORY_FILTER_EXTRA = [
+  'KONSUMSI',
+  'PERLENGKAPAN',
+  'PROGRAM_KEGIATAN',
+  'GAJI',
+  'INFRASTRUKTUR',
+  'LAIN_LAIN',
+] as const
+
+export const EXPENSE_CATEGORY_FILTER_OPTIONS: { value: string; label: string }[] = [
+  ...EXPENSE_MAIN_CATEGORY_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+  ...LEGACY_CATEGORY_FILTER_EXTRA.map((value) => ({
+    value,
+    label: LEGACY_EXPENSE_CATEGORY_LABEL[value] ?? value,
+  })),
+]
+</script>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
-import {
-  EXPENSE_MAIN_CATEGORY_OPTIONS,
-  expenseSubOptionsForMain,
-} from '@/lib/expense-categories'
 
 const store = useExpenseTransactionStore()
 const router = useRouter()

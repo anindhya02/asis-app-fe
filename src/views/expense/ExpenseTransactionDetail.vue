@@ -5,7 +5,7 @@ import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import { getCurrentUser } from '@/lib/auth'
 import { isKetua, isPengurus } from '@/lib/rbac'
-import { formatExpenseCategoryDisplay } from '@/lib/expense-categories'
+import { formatExpenseCategoryDisplay } from '@/views/expense/ExpenseTransactionCreate.vue'
 
 const route = useRoute()
 const router = useRouter()
