@@ -17,6 +17,8 @@ export interface IncomeTransaction {
   status: string
   createdByUsername: string
   createdAt: string
+  updatedAt?: string | null
+  updatedByUsername?: string | null
 }
 
 export interface IncomeTransactionListResponse {

@@ -16,28 +16,21 @@ export type ExpenseCategory =
   | 'INFRASTRUKTUR'
   | 'LAIN_LAIN'
 
-<<<<<<< HEAD
-=======
-export type PaymentMethod = 'CASH' | 'TRANSFER' 
+export type PaymentMethod = 'CASH' | 'TRANSFER'
 
 export interface BreakdownItem {
   id?: string
   description: string
   amount: number
 }
-
->>>>>>> 965172e22e33696ac0a1ba25d5da24eb1f4fb145
 export interface PaymentRequest {
   id: string
   title: string
   purpose: string
   amount: number
   expenseCategory: ExpenseCategory
-<<<<<<< HEAD
   program?: string | null
-=======
   subCategory?: string | null
-  program?: string | null
   neededDate?: string | null
   paymentMethod?: PaymentMethod | null
   recipient?: string | null
@@ -45,7 +38,6 @@ export interface PaymentRequest {
   supportingDocumentUrl?: string | null
   supportingDocumentName?: string | null
   breakdowns?: BreakdownItem[] | null
->>>>>>> 965172e22e33696ac0a1ba25d5da24eb1f4fb145
   status: PaymentRequestStatus
   createdByUsername: string
   createdAt: string

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
-import { isAdmin } from "@/lib/rbac"
+import { isAdmin, isKetua, isPengurus } from "@/lib/rbac"
 
 function getHomeRouteByRole(role?: string | null) {
   const r = (role || "").toUpperCase()
@@ -51,13 +51,13 @@ const router = createRouter({
       path: "/income-transactions/create",
       name: "income-transaction-create",
       component: () => import("@/views/income/IncomeTransactionCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/income-transactions",
       name: "income-transaction-list",
       component: () => import("@/views/income/IncomeTransactionList.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresIncomeAccess: true },
     },
     {
       path: "/payment-requests/create",
@@ -72,10 +72,16 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/income-transactions/:id/edit",
+      name: "income-transaction-edit",
+      component: () => import("@/views/income/IncomeTransactionEdit.vue"),
+      meta: { requiresAuth: true, requiresIncomeAccess: true },
+    },
+    {
       path: "/income-transactions/:id",
       name: "income-transaction-detail",
       component: () => import("@/views/income/IncomeTransactionDetail.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresIncomeAccess: true },
     },
     {
       path: "/expense-transactions/create",
@@ -90,6 +96,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/expense-transactions/:id/edit",
+      name: "expense-transaction-edit",
+      component: () => import("@/views/expense/ExpenseTransactionEdit.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/expense-transactions",
       name: "expense-transaction-list",
       component: () => import("@/views/expense/ExpenseTransactionList.vue"),
@@ -98,49 +110,25 @@ const router = createRouter({
     {
       path: "/activities",
       name: "activity-list",
-      component: () => import("@/views/ActivityList.vue"),
+      component: () => import("@/views/activity/ActivityList.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/activities/create",
       name: "activity-create",
-      component: () => import("@/views/ActivityForm.vue"),
+      component: () => import("@/views/activity/ActivityForm.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/activities/:id",
       name: "activity-detail",
-      component: () => import("@/views/ActivityDetail.vue"),
+      component: () => import("@/views/activity/ActivityDetail.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/activities/:id/edit",
       name: "activity-edit",
-      component: () => import("@/views/ActivityForm.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/activities",
-      name: "activity-list",
-      component: () => import("@/views/ActivityList.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/activities/create",
-      name: "activity-create",
-      component: () => import("@/views/ActivityForm.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/activities/:id",
-      name: "activity-detail",
-      component: () => import("@/views/ActivityDetail.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/activities/:id/edit",
-      name: "activity-edit",
-      component: () => import("@/views/ActivityForm.vue"),
+      component: () => import("@/views/activity/ActivityForm.vue"),
       meta: { requiresAuth: true },
     },
   ],
@@ -158,6 +146,14 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresAdmin && !isAdmin()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresPengurus && !isPengurus()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresIncomeAccess && !(isPengurus() || isKetua())) {
     return getHomeRouteByRole(user?.role)
   }
 

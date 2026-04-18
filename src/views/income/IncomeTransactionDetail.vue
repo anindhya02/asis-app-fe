@@ -3,16 +3,44 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useIncomeTransactionStore } from '@/stores/income-transaction.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import { getCurrentUser } from '@/lib/auth'
+import { isKetua, isPengurus } from '@/lib/rbac'
 
 const route = useRoute()
 const router = useRouter()
 const store = useIncomeTransactionStore()
+const currentUser = computed(() => getCurrentUser())
 
 const id = computed(() => route.params.id as string)
+const canManageIncome = computed(() => isPengurus() || isKetua())
+const canDeleteIncome = computed(() => isKetua())
+const canEditIncome = computed(() => {
+  if (isKetua()) return true
+  if (!isPengurus()) return false
+  const item = store.currentItem
+  if (!item) return false
+  if (item.createdByUsername !== currentUser.value?.username) return false
+  if (!item.createdAt) return false
+  const createdAtDate = new Date(item.createdAt)
+  if (Number.isNaN(createdAtDate.getTime())) return false
+  return Date.now() - createdAtDate.getTime() <= 30 * 60 * 1000
+})
+const editDisabledReason = computed(() => {
+  if (isKetua()) return ''
+  if (!isPengurus()) return 'Anda tidak memiliki akses edit transaksi'
+  const item = store.currentItem
+  if (!item) return 'Data transaksi tidak tersedia'
+  if (item.createdByUsername !== currentUser.value?.username) {
+    return 'Pengurus hanya dapat mengubah transaksi milik sendiri'
+  }
+  if (!canEditIncome.value) {
+    return 'Batas edit 30 menit sudah terlewati'
+  }
+  return ''
+})
 const showDeleteModal = ref(false)
 const isDeleting = ref(false)
 
-// ── Label maps ─────────────────────────────────────────────
 const categoryLabel: Record<string, string> = {
   DONASI: 'Donasi', ZAKAT: 'Zakat', INFAQ: 'Infaq', LAIN_LAIN: 'Lain-lain',
 }
@@ -76,6 +104,23 @@ function formatDate(dateStr: string): string {
   if (!dateStr) return '—'
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
+}
+
+function formatDateTime(iso: string | undefined | null): string {
+  if (!iso) return '—'
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    return d.toLocaleString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
 }
 
 // ── Delete ────────────────────────────────────────────────
@@ -153,8 +198,14 @@ onMounted(async () => {
             <div class="header-row">
               <h1 class="page-title">Detail Transaksi Pemasukan</h1>
               <div class="header-actions">
-                <button type="button" class="btn-outline-teal"
-                  @click="router.push(`/income-transactions/${id}/edit`)">
+                <button
+                  v-if="canManageIncome"
+                  type="button"
+                  class="btn-outline-teal"
+                  :disabled="!canEditIncome"
+                  :title="editDisabledReason || 'Edit'"
+                  @click="canEditIncome && router.push(`/income-transactions/${id}/edit`)"
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -162,7 +213,12 @@ onMounted(async () => {
                   </svg>
                   Edit
                 </button>
-                <button type="button" class="btn-outline-red" @click="showDeleteModal = true">
+                <button
+                  v-if="canDeleteIncome"
+                  type="button"
+                  class="btn-outline-red"
+                  @click="showDeleteModal = true"
+                >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6" />
@@ -170,7 +226,7 @@ onMounted(async () => {
                     <path d="M10 11v6M14 11v6" />
                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                   </svg>
-                  Hapus
+                  Nonaktifkan
                 </button>
               </div>
             </div>
@@ -203,6 +259,15 @@ onMounted(async () => {
               <div class="detail-row">
                 <span class="detail-label">Pencatat</span>
                 <span class="detail-value">{{ store.currentItem.createdByUsername }}</span>
+              </div>
+              <div
+                v-if="store.currentItem.updatedByUsername"
+                class="detail-row"
+              >
+                <span class="detail-label">Terakhir diubah</span>
+                <span class="detail-value">
+                  {{ store.currentItem.updatedByUsername }} · {{ formatDateTime(store.currentItem.updatedAt) }}
+                </span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Status</span>
@@ -334,9 +399,9 @@ onMounted(async () => {
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
           </div>
-          <h2 class="modal-title">Hapus Transaksi?</h2>
+          <h2 class="modal-title">Nonaktifkan transaksi?</h2>
           <p class="modal-sub">
-            Tindakan ini tidak dapat dibatalkan. Data transaksi akan dihapus secara permanen dari sistem.
+            Transaksi akan ditandai tidak aktif dan tidak lagi muncul di daftar pemasukan.
           </p>
           <div class="modal-actions">
             <button type="button" class="btn-outline-gray" :disabled="isDeleting"
@@ -345,7 +410,7 @@ onMounted(async () => {
             </button>
             <button type="button" class="btn-danger" :disabled="isDeleting" @click="confirmDelete">
               <span v-if="isDeleting" class="spinner" />
-              {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+              {{ isDeleting ? 'Memproses...' : 'Ya, nonaktifkan' }}
             </button>
           </div>
         </div>
@@ -668,6 +733,13 @@ onMounted(async () => {
 }
 
 .btn-outline-teal:hover { background-color: #f0fdfb; }
+.btn-outline-teal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-outline-teal:disabled:hover {
+  background-color: #fff;
+}
 
 .btn-download { height: 40px; }
 
@@ -689,6 +761,10 @@ onMounted(async () => {
 }
 
 .btn-outline-red:hover { background-color: #fff1f2; }
+.btn-outline-red:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-outline-gray {
   display: inline-flex;
@@ -749,6 +825,7 @@ onMounted(async () => {
   max-width: 420px;
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .modal-icon {
@@ -772,6 +849,7 @@ onMounted(async () => {
 
 .modal-sub {
   font-size: 14px;
+  font-family: inherit;
   color: #525252;
   line-height: 1.5;
   margin: 0 0 24px;

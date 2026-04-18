@@ -5,8 +5,11 @@ import type { CommonResponseInterface } from '@/interfaces/common.response.inter
 import type {
   ActivityResponse,
   AttachmentResponse,
+  CreateReplyRequest,
   CreateActivityRequest,
+  ReplyResponse,
   UpdateActivityRequest,
+  UpdateReplyRequest,
 } from '@/interfaces/activity.interface'
 import { getAuthToken, handleAuthError } from '@/lib/auth'
 import router from '@/router'
@@ -257,6 +260,102 @@ export const useActivityStore = defineStore('activity', {
             headers: { Authorization: `Bearer ${token}` },
           },
         )
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        toast.error(message)
+        throw error
+      }
+    },
+
+    async fetchReplies(activityId: string) {
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.get<
+          CommonResponseInterface<ReplyResponse[]>
+        >(`${baseUrl}/${activityId}/replies`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        toast.error(message)
+        throw error
+      }
+    },
+
+    async createReply(activityId: string, payload: CreateReplyRequest) {
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.post<
+          CommonResponseInterface<ReplyResponse>
+        >(`${baseUrl}/${activityId}/replies`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        toast.error(message)
+        throw error
+      }
+    },
+
+    async updateReply(replyId: string, payload: UpdateReplyRequest) {
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.put<
+          CommonResponseInterface<ReplyResponse>
+        >(`${import.meta.env.VITE_API_URL}/replies/${replyId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        toast.error(message)
+        throw error
+      }
+    },
+
+    async deleteReply(replyId: string) {
+      const token = getAuthToken()
+
+      try {
+        await axios.delete(`${import.meta.env.VITE_API_URL}/replies/${replyId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
           await handleAuthError(error.response.status, router)

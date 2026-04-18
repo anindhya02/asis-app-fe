@@ -1,4 +1,4 @@
-import type { User, CreateUserRequest } from '@/interfaces/user.interface';
+import type { User, CreateUserRequest, UpdateUserRequest } from '@/interfaces/user.interface';
 import { defineStore } from 'pinia'
 import axios from "axios";
 import { toast } from 'vue-sonner';
@@ -124,6 +124,74 @@ export const useUserStore = defineStore('user', {
         // toast.error(`Error saat membuat user: ${this.error}`);
 
         throw error
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateUser(userId: string, userData: UpdateUserRequest) {
+      this.loading = true;
+      this.error = null;
+      const token = getAuthToken();
+
+      try {
+        const response = await axios.put<CommonResponseInterface<User>>(
+          `${baseUserUrl}/${userId}`,
+          userData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const updatedUser = response.data.data;
+        this.users = this.users.map((user) => user.userId === userId ? updatedUser : user);
+        toast.success('User berhasil diperbarui');
+        return updatedUser;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            await handleAuthError(error.response.status, router);
+          }
+        }
+
+        this.error = error instanceof Error ? error.message : 'Unknown error';
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async deactivateUser(userId: string) {
+      this.loading = true;
+      this.error = null;
+      const token = getAuthToken();
+
+      try {
+        const response = await axios.patch<CommonResponseInterface<User>>(
+          `${baseUserUrl}/${userId}/deactivate`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const updatedUser = response.data.data;
+        this.users = this.users.map((user) => user.userId === userId ? updatedUser : user);
+        toast.success('User berhasil dinonaktifkan');
+        return updatedUser;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            await handleAuthError(error.response.status, router);
+          }
+        }
+
+        this.error = error instanceof Error ? error.message : 'Unknown error';
+        throw error;
       } finally {
         this.loading = false;
       }

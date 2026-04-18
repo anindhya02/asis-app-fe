@@ -143,7 +143,7 @@ function removeFile(fileId: string) {
   const idx = uploadedFiles.value.findIndex((f) => f.id === fileId)
   if (idx >= 0) {
     const f = uploadedFiles.value[idx]
-    if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
+    if (f?.previewUrl) URL.revokeObjectURL(f.previewUrl)
     uploadedFiles.value.splice(idx, 1)
     isDirty.value = true
   }

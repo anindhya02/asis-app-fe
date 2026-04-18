@@ -888,6 +888,7 @@ select:focus {
   color: #171717;
   margin: 0 0 8px;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -899,6 +900,7 @@ select:focus {
   color: #525252;
   margin: 0 0 12px;
   display: -webkit-box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
