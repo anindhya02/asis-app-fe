@@ -22,8 +22,6 @@ const paymentMethodDisplay = ref('')
 const proofFileName = ref('')
 const category = ref('')
 const subCategory = ref('')
-const program = ref('')
-const penerimaDana = ref('')
 const note = ref('')
 
 const errors = ref<Record<string, string>>({})
@@ -31,16 +29,6 @@ const touched = ref<Record<string, boolean>>({})
 
 const subCategoryOptions = computed(() => expenseSubOptionsForMain(category.value))
 const requiresSubCategory = computed(() => subCategoryOptions.value.length > 0)
-
-const programOptions = [
-  { label: 'Rumah Yatim', value: 'Rumah Yatim' },
-  { label: 'Beasiswa Pendidikan', value: 'Beasiswa Pendidikan' },
-  { label: 'Pemberdayaan Ekonomi', value: 'Pemberdayaan Ekonomi' },
-  { label: 'Kesehatan', value: 'Kesehatan' },
-  { label: 'Dakwah', value: 'Dakwah' },
-  { label: 'Operasional Kantor', value: 'Operasional Kantor' },
-  { label: 'Lain-lain', value: 'Lain-lain' },
-]
 
 function applyInitialData() {
   const item = store.currentItem
@@ -51,8 +39,6 @@ function applyInitialData() {
   proofFileName.value = item.proofFilePath?.split('/').pop()?.split('?')[0] ?? 'Bukti transaksi tersimpan'
   category.value = item.category
   subCategory.value = item.subCategory ?? ''
-  program.value = item.program
-  penerimaDana.value = item.penerimaDana
   note.value = item.note ?? ''
 }
 
@@ -74,14 +60,6 @@ function validateField(field: string) {
       if (requiresSubCategory.value && !subCategory.value) e.subCategory = 'Sub-kategori wajib dipilih'
       else delete e.subCategory
       break
-    case 'program':
-      if (!program.value) e.program = 'Program terkait wajib dipilih'
-      else delete e.program
-      break
-    case 'penerimaDana':
-      if (!penerimaDana.value.trim()) e.penerimaDana = 'Penerima dana wajib diisi'
-      else delete e.penerimaDana
-      break
   }
   errors.value = e
 }
@@ -96,7 +74,7 @@ function showError(field: string) {
 }
 
 function validateAll() {
-  const fields = ['category', 'subCategory', 'program', 'penerimaDana']
+  const fields = ['category', 'subCategory']
   fields.forEach((f) => {
     touched.value[f] = true
     validateField(f)
@@ -106,8 +84,6 @@ function validateAll() {
 
 const isFormValid = computed(() =>
   !!category.value &&
-  !!program.value &&
-  !!penerimaDana.value.trim() &&
   (!requiresSubCategory.value || !!subCategory.value),
 )
 
@@ -120,8 +96,6 @@ async function handleSubmit() {
   if (subCategory.value) {
     formData.append('subCategory', subCategory.value)
   }
-  formData.append('program', program.value)
-  formData.append('penerimaDana', penerimaDana.value)
   if (note.value) formData.append('note', note.value)
 
   try {
@@ -172,7 +146,7 @@ onMounted(async () => {
       <template v-else>
         <header class="content-header">
           <h1 class="page-title">Ubah Transaksi Pengeluaran</h1>
-          <p class="page-subtitle">Anda hanya dapat mengubah kategori, program, penerima dana, dan catatan.</p>
+          <p class="page-subtitle">Anda hanya dapat mengubah kategori dan catatan.</p>
         </header>
 
         <form class="card" @submit.prevent="handleSubmit">
@@ -226,34 +200,6 @@ onMounted(async () => {
               </select>
               <p v-if="showError('subCategory')" class="error">{{ showError('subCategory') }}</p>
             </div>
-
-            <div class="field">
-              <label>Program <span class="required">*</span></label>
-              <select
-                v-model="program"
-                :class="['input', { 'is-error': showError('program') }]"
-                @blur="markTouched('program')"
-                @change="markTouched('program')"
-              >
-                <option value="" disabled>Pilih Program</option>
-                <option v-for="opt in programOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <p v-if="showError('program')" class="error">{{ showError('program') }}</p>
-            </div>
-
-            <div class="field">
-              <label>Penerima Dana <span class="required">*</span></label>
-              <input
-                v-model="penerimaDana"
-                type="text"
-                placeholder="Masukkan penerima dana"
-                :class="['input', { 'is-error': showError('penerimaDana') }]"
-                @blur="markTouched('penerimaDana')"
-              />
-              <p v-if="showError('penerimaDana')" class="error">{{ showError('penerimaDana') }}</p>
-            </div>
           </div>
 
           <div class="field field-note">
@@ -278,15 +224,31 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.layout { display: flex; min-height: 100vh; background: #f5f5f5; }
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .content { flex: 1; padding: 40px 32px; overflow-y: auto; }
 .content-header { max-width: 1100px; margin: 0 auto 20px; }
-.page-title { margin: 0 0 4px; font-size: 32px; font-weight: 600; color: #171717; font-family: 'Poppins', sans-serif; }
+.page-title {
+  margin: 0 0 4px;
+  font-size: 32px;
+  font-weight: 600;
+  color: #171717;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 .page-subtitle { margin: 0; color: #525252; font-size: 14px; }
 .card { max-width: 1100px; margin: 0 auto; padding: 24px; border-radius: 12px; border: 1px solid #e5e5e5; background: #fff; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-label { font-size: 13px; font-weight: 600; color: #404040; }
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #171717;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .required { color: #ff303e; }
 .input, .input-disabled {
   height: 42px;
@@ -295,17 +257,29 @@ label { font-size: 13px; font-weight: 600; color: #404040; }
   padding: 0 12px;
   font-size: 14px;
   color: #171717;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .input:focus { outline: none; border-color: #00c6ac; box-shadow: 0 0 0 1px #00c6ac; }
 .input.is-error { border-color: #ff303e; }
 .input-disabled { background: #f5f5f5; color: #737373; }
-.textarea { height: auto; padding: 10px 12px; resize: vertical; }
+.textarea {
+  height: auto;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 .field-note { margin-top: 16px; }
 .error { margin: 0; font-size: 12px; color: #ff303e; }
 .error-banner { margin: 12px 0 0; color: #ff303e; font-size: 13px; }
 .actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .btn-outline, .btn-primary {
-  height: 42px; border-radius: 8px; padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  height: 42px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
 }
 .btn-outline { border: 1px solid #d4d4d4; background: #fff; color: #404040; }
 .btn-primary { border: none; background: #00c6ac; color: #fff; }
