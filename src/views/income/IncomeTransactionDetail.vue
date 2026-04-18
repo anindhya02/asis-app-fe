@@ -245,7 +245,7 @@ onMounted(async () => {
                 <span class="detail-value">{{ label(categoryLabel, store.currentItem.category) }}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">Sumber</span>
+                <span class="detail-label">Tipe Donatur</span>
                 <span class="detail-value">{{ label(sourceLabel, store.currentItem.sourceType) }}</span>
               </div>
               <div class="detail-row">
