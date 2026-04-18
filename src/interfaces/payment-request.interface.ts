@@ -39,6 +39,7 @@ export interface PaymentRequest {
   createdByUsername: string
   createdAt: string
   updatedAt: string
+  updatedByUsername?: string | null
 }
 
 export interface PaymentRequestListResponse {
@@ -47,4 +48,44 @@ export interface PaymentRequestListResponse {
   size: number
   totalElements: number
   totalPages: number
+}
+
+export interface PaymentRequestAttachment {
+  url: string
+  fileName?: string | null
+}
+
+export interface PaymentRequestCreatedBy {
+  username: string
+  name: string
+  role: string
+}
+
+export interface PaymentRequestReviewHistoryItem {
+  status: PaymentRequestStatus
+  actorName: string
+  actorRole: string
+  actorUsername?: string | null
+  note?: string | null
+  occurredAt: string
+}
+
+/** Detail response from GET /payment-requests/:id (Pengurus / Ketua / Admin access rules apply on backend). */
+export interface PaymentRequestDetail {
+  id: string
+  title: string
+  expenseCategory: ExpenseCategory
+  expenseSubCategory?: string | null
+  amount: number
+  breakdownList: BreakdownItem[]
+  neededDate?: string | null
+  paymentMethod?: PaymentMethod | null
+  notes?: string | null
+  attachments: PaymentRequestAttachment[]
+  status: PaymentRequestStatus
+  createdAt: string
+  updatedAt: string
+  updatedByUsername?: string | null
+  createdBy: PaymentRequestCreatedBy
+  reviewHistory: PaymentRequestReviewHistoryItem[]
 }

@@ -4,12 +4,15 @@ import { toast } from 'vue-sonner'
 import type { CommonResponseInterface } from '@/interfaces/common.response.interface'
 import type {
   PaymentRequest,
+  PaymentRequestDetail,
   PaymentRequestListResponse,
 } from '@/interfaces/payment-request.interface'
 import { getAuthToken, handleAuthError } from '@/lib/auth'
 import router from '@/router'
 
 const baseUrl = import.meta.env.VITE_API_URL + '/payment-requests'
+
+export type PaymentRequestDetailLoadError = 'not_found' | 'forbidden' | null
 
 export const usePaymentRequestStore = defineStore('paymentRequest', {
   state: () => ({
@@ -20,9 +23,52 @@ export const usePaymentRequestStore = defineStore('paymentRequest', {
     size: 10,
     totalElements: 0,
     totalPages: 0,
+    currentDetail: null as PaymentRequestDetail | null,
+    detailLoadError: null as PaymentRequestDetailLoadError,
   }),
 
   actions: {
+    async updatePaymentRequest(id: string, formData: FormData) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.patch<
+          CommonResponseInterface<PaymentRequest>
+        >(`${baseUrl}/${id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+
+        toast.success(
+          response.data.message || 'Ticket berhasil diperbarui',
+        )
+
+        await router.push('/payment-requests')
+
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
+        toast.error(message)
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     async createPaymentRequest(formData: FormData) {
       this.loading = true
       this.error = null
@@ -61,6 +107,88 @@ export const usePaymentRequestStore = defineStore('paymentRequest', {
         throw error
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchPaymentRequestById(id: string) {
+      this.loading = true
+      this.error = null
+      this.currentDetail = null
+      this.detailLoadError = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.get<
+          CommonResponseInterface<PaymentRequestDetail>
+        >(`${baseUrl}/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        this.currentDetail = response.data.data
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          const status = error.response.status
+          if (status === 401) {
+            await handleAuthError(status, router)
+          } else if (status === 403) {
+            this.detailLoadError = 'forbidden'
+          } else if (status === 404) {
+            this.detailLoadError = 'not_found'
+          } else {
+            this.detailLoadError = 'not_found'
+          }
+        } else {
+          this.detailLoadError = 'not_found'
+        }
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Owner-only cancel (DRAFT / PENDING_REVIEW). Returns true on success (caller handles navigation / refresh).
+     */
+    async cancelPaymentRequest(id: string): Promise<boolean> {
+      this.error = null
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.delete<CommonResponseInterface<null>>(
+          `${baseUrl}/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+
+        toast.success(response.data.message || 'Ticket berhasil dibatalkan')
+        return true
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          const status = error.response.status
+          const msg =
+            (error.response.data as CommonResponseInterface<null>)?.message ||
+            (error instanceof Error ? error.message : '')
+
+          if (status === 401) {
+            await handleAuthError(status, router)
+          } else if (status === 403) {
+            toast.error(msg || 'Anda tidak memiliki akses untuk membatalkan ticket ini.')
+          } else if (status === 404) {
+            toast.error(msg || 'Ticket tidak ditemukan.')
+          } else if (status === 409) {
+            toast.error(msg || 'Ticket tidak dapat dibatalkan karena sudah diproses')
+          } else {
+            toast.error(msg || 'Gagal membatalkan ticket.')
+          }
+        } else {
+          toast.error('Gagal membatalkan ticket.')
+        }
+
+        return false
       }
     },
 

@@ -1,12 +1,27 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 
 const store = usePaymentRequestStore()
+const route = useRoute()
 const router = useRouter()
+
+/** Same view as create; `/payment-requests/:id/edit` loads existing ticket (PBI-18). */
+const isEditMode = computed(() => route.name === 'payment-request-edit')
+const editId = computed(() => {
+  if (!isEditMode.value) return ''
+  const raw = route.params.id
+  if (typeof raw === 'string') return raw
+  if (Array.isArray(raw)) return raw[0] ?? ''
+  return ''
+})
+
+/** Edit route: same 403/404 UX as detail (PBI-17). */
+type EditPageAccess = 'ready' | 'loading' | 'forbidden' | 'not_found'
+const editPageAccess = ref<EditPageAccess>('ready')
 
 // ──── Form fields ────
 const title = ref<string>('')
@@ -18,6 +33,8 @@ const amount = ref<string>('')
 const paymentMethod = ref<string>('')
 const notes = ref<string>('')
 const supportingDocument = ref<File | null>(null)
+const existingDocUrl = ref<string | null>(null)
+const existingDocName = ref<string | null>(null)
 
 // Breakdown repeater
 const breakdowns = ref<{ description: string; amountDisplay: string; amount: string }[]>([
@@ -195,12 +212,12 @@ function validateField(field: string) {
   const e = { ...errors.value }
   switch (field) {
     case 'title':
-      if (!title.value.trim()) e.title = 'Judul pengajuan wajib diisi'
+      if (!title.value.trim()) e.title = 'Judul wajib diisi'
       else delete e.title
       break
     case 'neededDate':
       if (!neededDate.value) {
-        e.neededDate = 'Tanggal pengajuan wajib diisi'
+        e.neededDate = 'Tanggal penggunaan dana wajib diisi'
       } else {
         delete e.neededDate
       }
@@ -224,8 +241,11 @@ function validateField(field: string) {
       else delete e.paymentMethod
       break
     case 'supportingDocument':
-      if (!supportingDocument.value) e.supportingDocument = 'Dokumen pendukung wajib diunggah'
-      else delete e.supportingDocument
+      if (!supportingDocument.value && !(isEditMode.value && existingDocUrl.value)) {
+        e.supportingDocument = 'Dokumen pendukung wajib diunggah'
+      } else {
+        delete e.supportingDocument
+      }
       break
   }
   errors.value = e
@@ -305,7 +325,7 @@ function validateForDraft(): boolean {
   validateField('expenseCategory')
 
   if (!trimmedTitle || !neededDate.value || !expenseCategory.value) {
-    toast.warning('Minimal isi judul, tanggal pengajuan, dan kategori untuk menyimpan draft.')
+    toast.warning('Minimal isi judul, tanggal penggunaan dana, dan kategori untuk menyimpan draft.')
     return false
   }
 
@@ -345,7 +365,11 @@ async function handleSubmit() {
   if (!validateAllForSubmit()) return
   const formData = buildFormData(true)
   try {
-    await store.createPaymentRequest(formData)
+    if (isEditMode.value) {
+      await store.updatePaymentRequest(editId.value, formData)
+    } else {
+      await store.createPaymentRequest(formData)
+    }
   } catch {
     // error handled in store
   }
@@ -355,7 +379,11 @@ async function handleSaveDraft() {
   if (!validateForDraft()) return
   const formData = buildFormData(false)
   try {
-    await store.createPaymentRequest(formData)
+    if (isEditMode.value) {
+      await store.updatePaymentRequest(editId.value, formData)
+    } else {
+      await store.createPaymentRequest(formData)
+    }
   } catch {
     // error handled in store
   }
@@ -366,13 +394,137 @@ function onCategoryChange() {
   clearError('subCategory')
   markTouched('expenseCategory')
 }
+
+async function loadExistingTicket() {
+  if (!isEditMode.value || !editId.value) {
+    editPageAccess.value = 'ready'
+    return
+  }
+
+  editPageAccess.value = 'loading'
+
+  try {
+    await store.fetchPaymentRequestById(editId.value)
+  } catch {
+    // store.detailLoadError set for 403/404; other errors fall through
+  }
+
+  if (store.detailLoadError === 'forbidden') {
+    editPageAccess.value = 'forbidden'
+    return
+  }
+  if (store.detailLoadError === 'not_found' || !store.currentDetail) {
+    editPageAccess.value = 'not_found'
+    return
+  }
+
+  const d = store.currentDetail
+
+  if (d.status !== 'DRAFT' && d.status !== 'REVISION_REQUESTED') {
+    toast.error('Ticket hanya dapat diubah saat status Draft atau Revisi.')
+    await router.push(`/payment-requests/${editId.value}`)
+    return
+  }
+
+  title.value = d.title || ''
+  neededDate.value = d.neededDate || ''
+  expenseCategory.value = d.expenseCategory || ''
+  subCategory.value = d.expenseSubCategory || ''
+  const amt = Number(d.amount)
+  if (Number.isFinite(amt) && amt > 0) {
+    const digits = String(Math.round(amt))
+    amount.value = digits
+    nominalDisplay.value = parseInt(digits, 10).toLocaleString('id-ID')
+  } else {
+    amount.value = ''
+    nominalDisplay.value = ''
+  }
+  paymentMethod.value = d.paymentMethod || ''
+  notes.value = d.notes?.trim() || ''
+
+  const att = d.attachments?.[0]
+  if (att?.url) {
+    existingDocUrl.value = att.url
+    existingDocName.value = att.fileName || att.url.split('/').pop()?.split('?')[0] || 'Dokumen'
+  } else {
+    existingDocUrl.value = null
+    existingDocName.value = null
+  }
+
+  if (d.breakdownList && d.breakdownList.length > 0) {
+    breakdowns.value = d.breakdownList.map((row) => {
+      const n = Number(row.amount)
+      const digits = Number.isFinite(n) ? String(Math.round(n)) : ''
+      return {
+        description: row.description || '',
+        amount: digits,
+        amountDisplay: digits ? parseInt(digits, 10).toLocaleString('id-ID') : '',
+      }
+    })
+  } else {
+    breakdowns.value = [{ description: '', amountDisplay: '', amount: '' }]
+  }
+
+  editPageAccess.value = 'ready'
+}
+
+watch(
+  () => [route.name, editId.value] as const,
+  () => {
+    void loadExistingTicket()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="layout">
     <AsisSidebar />
 
-    <main class="content">
+    <main v-if="isEditMode && editPageAccess === 'loading'" class="content">
+      <div class="edit-load-inner">
+        <div class="skel skel-title" />
+        <div class="card skel-card">
+          <div v-for="n in 6" :key="n" class="skel skel-row" />
+        </div>
+      </div>
+    </main>
+
+    <main v-else-if="isEditMode && editPageAccess === 'forbidden'" class="content">
+      <div class="not-found">
+        <div class="not-found-icon not-found-icon--muted">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+            stroke="#525252" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+        <h2 class="not-found-title">Tidak memiliki akses</h2>
+        <p class="not-found-sub">Anda tidak dapat membuka ticket pengajuan ini.</p>
+        <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          Kembali ke daftar
+        </button>
+      </div>
+    </main>
+
+    <main v-else-if="isEditMode && editPageAccess === 'not_found'" class="content">
+      <div class="not-found">
+        <div class="not-found-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+            stroke="#F5A623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <h2 class="not-found-title">Ticket tidak ditemukan</h2>
+        <p class="not-found-sub">Data pengajuan dengan ID tersebut tidak tersedia dalam sistem.</p>
+        <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          Kembali ke daftar
+        </button>
+      </div>
+    </main>
+
+    <main v-else class="content">
       <!-- Header -->
       <header class="content-header">
         <div class="breadcrumb">
@@ -383,9 +535,9 @@ function onCategoryChange() {
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
-          <span class="breadcrumb-current">Ajukan Permintaan Dana</span>
+          <span class="breadcrumb-current">{{ isEditMode ? 'Ubah Pengajuan' : 'Ajukan Permintaan Dana' }}</span>
         </div>
-        <h1 class="page-title">Ajukan Permintaan Dana</h1>
+        <h1 class="page-title">{{ isEditMode ? 'Ubah Pengajuan Dana' : 'Ajukan Permintaan Dana' }}</h1>
       </header>
 
       <!-- Server error banner -->
@@ -407,16 +559,16 @@ function onCategoryChange() {
           <input
             v-model="title"
             type="text"
-            placeholder="Masukkan Judul Pengajuan"
+            placeholder="Masukkan Judul"
             :class="['form-input', { 'is-error': showError('title') }]"
             @blur="markTouched('title')"
           />
           <p v-if="showError('title')" class="error-text">{{ showError('title') }}</p>
         </div>
 
-        <!-- Tanggal Pengajuan -->
+        <!-- Tanggal Penggunaan Dana -->
         <div class="field">
-          <label>Tanggal Pengajuan <span class="required">*</span></label>
+          <label>Tanggal Penggunaan Dana <span class="required">*</span></label>
           <input
             v-model="neededDate"
             type="date"
@@ -496,7 +648,24 @@ function onCategoryChange() {
 
         <!-- Upload Dokumen Pendukung -->
         <div class="field">
-          <label>Upload Dokumen Pendukung <span class="required">*</span></label>
+          <label>
+            Upload Dokumen Pendukung
+            <span v-if="!isEditMode || !existingDocUrl" class="required">*</span>
+            <span v-else class="optional-hint">(opsional — kosongkan untuk mempertahankan dokumen saat ini)</span>
+          </label>
+
+          <div
+            v-if="isEditMode && existingDocUrl && !supportingDocument"
+            class="existing-doc"
+          >
+            <p class="existing-doc-label">Dokumen saat ini</p>
+            <a
+              :href="existingDocUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="existing-doc-link"
+            >{{ existingDocName || 'Lihat dokumen' }}</a>
+          </div>
 
           <div
             v-if="!supportingDocument"
@@ -953,6 +1122,28 @@ label {
   margin: 2px 0 0;
 }
 
+.existing-doc {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+}
+
+.existing-doc-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #737373;
+}
+
+.existing-doc-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00c6ac;
+  word-break: break-all;
+}
+
 .file-remove {
   width: 28px;
   height: 28px;
@@ -1144,4 +1335,87 @@ label {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Edit route: loading + 403/404 (match PaymentRequestDetail) ── */
+.edit-load-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+.skel {
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e5e5e5 25%, #f0f0f0 50%, #e5e5e5 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.skel-title { height: 36px; width: 280px; margin-bottom: 16px; }
+.skel-row { height: 18px; margin-bottom: 12px; }
+.skel-card { padding: 24px; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 48px);
+  padding: 32px;
+  text-align: center;
+}
+
+.not-found-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #fff8e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.not-found-icon--muted {
+  background-color: #f5f5f5;
+}
+
+.not-found-title {
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #171717;
+  margin: 0 0 8px;
+}
+
+.not-found-sub {
+  font-size: 14px;
+  color: #525252;
+  margin: 0 0 24px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 8px;
+  border: none;
+  background-color: #00c6ac;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #00b39c;
+}
 </style>

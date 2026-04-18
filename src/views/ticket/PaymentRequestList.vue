@@ -3,12 +3,46 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import { isKetua, isPengurus } from '@/lib/rbac'
+import { getCurrentUser } from '@/lib/auth'
 import AsisSidebar from '@/components/AsisSidebar.vue'
+import PaymentRequestCancelConfirmModal from '@/components/PaymentRequestCancelConfirmModal.vue'
 
 const store = usePaymentRequestStore()
 const router = useRouter()
 const userIsPengurus = computed(() => isPengurus())
 const userIsKetua = computed(() => isKetua())
+const currentUsername = computed(() => (getCurrentUser()?.username || '').toLowerCase())
+
+const showCancelModal = ref(false)
+const cancelTargetId = ref<string | null>(null)
+const isCancelling = ref(false)
+
+function openCancelModal(ticketId: string) {
+  cancelTargetId.value = ticketId
+  showCancelModal.value = true
+}
+
+function closeCancelModal() {
+  if (isCancelling.value) return
+  showCancelModal.value = false
+  cancelTargetId.value = null
+}
+
+async function confirmCancelTicket() {
+  const id = cancelTargetId.value
+  if (!id) return
+  isCancelling.value = true
+  try {
+    const ok = await store.cancelPaymentRequest(id)
+    if (ok) {
+      showCancelModal.value = false
+      cancelTargetId.value = null
+      await fetchData(store.page)
+    }
+  } finally {
+    isCancelling.value = false
+  }
+}
 
 const startDate = ref<string>('')
 const endDate = ref<string>('')
@@ -217,7 +251,7 @@ onMounted(() => {
                 <th>Kategori</th>
                 <th class="th-right">Nominal</th>
                 <th class="th-center">Status</th>
-                <th>Tanggal Pengajuan</th>
+                <th>Tanggal Penggunaan Dana</th>
                 <th class="th-center">Aksi</th>
               </tr>
             </thead>
@@ -254,7 +288,13 @@ onMounted(() => {
               </tr>
 
               <!-- Data rows -->
-              <tr v-else v-for="item in store.items" :key="item.id">
+              <tr
+                v-else
+                v-for="item in store.items"
+                :key="item.id"
+                class="data-row"
+                @click="router.push(`/payment-requests/${item.id}`)"
+              >
                 <td>{{ formatDate(item.createdAt) }}</td>
                 <td class="td-title">{{ item.title }}</td>
                 <td>{{ labelOf(categoryLabel, item.expenseCategory) }}</td>
@@ -265,7 +305,7 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="td-date-submitted">{{ formatSubmissionDate(item.neededDate, item.createdAt) }}</td>
-                <td class="actions-cell">
+                <td class="actions-cell" @click.stop>
                   <!-- View -->
                   <button type="button" class="icon-btn"
                     title="Lihat Detail"
@@ -287,10 +327,18 @@ onMounted(() => {
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <!-- Delete (only for DRAFT or PENDING_REVIEW, Pengurus only) -->
-                  <button v-if="userIsPengurus && (item.status === 'DRAFT' || item.status === 'PENDING_REVIEW')"
-                    type="button" class="icon-btn icon-btn--danger"
-                    title="Hapus">
+                  <!-- Batalkan (owner, DRAFT or PENDING_REVIEW, Pengurus) — shared confirm modal for PBI-19 / future Ketua flows -->
+                  <button
+                    v-if="
+                      userIsPengurus &&
+                      (item.status === 'DRAFT' || item.status === 'PENDING_REVIEW') &&
+                      (item.createdByUsername || '').toLowerCase() === currentUsername
+                    "
+                    type="button"
+                    class="icon-btn icon-btn--danger"
+                    title="Batalkan"
+                    @click.stop="openCancelModal(item.id)"
+                  >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6" />
@@ -346,6 +394,13 @@ onMounted(() => {
         </footer>
       </section>
     </main>
+
+    <PaymentRequestCancelConfirmModal
+      :is-open="showCancelModal"
+      :loading="isCancelling"
+      @cancel="closeCancelModal"
+      @confirm="confirmCancelTicket"
+    />
   </div>
 </template>
 
@@ -560,6 +615,10 @@ select:focus {
 
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover { background-color: #f0fdfb; transition: background-color 0.1s; }
+
+.table tbody tr.data-row {
+  cursor: pointer;
+}
 
 .th-right  { text-align: right; }
 .th-center { text-align: center; }
