@@ -6,7 +6,8 @@ import AsisSidebar from '@/components/AsisSidebar.vue'
 import PaymentRequestCancelConfirmModal from '@/components/PaymentRequestCancelConfirmModal.vue'
 import type { PaymentRequestDetail } from '@/interfaces/payment-request.interface'
 import { getCurrentUser } from '@/lib/auth'
-import { isPengurus } from '@/lib/rbac'
+import { isKetua, isPengurus } from '@/lib/rbac'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,6 +21,8 @@ const id = computed(() => {
 })
 
 const currentUser = computed(() => getCurrentUser())
+const userIsKetua = computed(() => isKetua())
+const isReviewDetailRoute = computed(() => route.name === 'payment-request-review-detail')
 
 // Tabs: shared layout for Pengurus (PBI-17) and future Ketua actions (PBI-22).
 const activeTab = ref<'detail' | 'review'>('detail')
@@ -155,6 +158,11 @@ const canCancelTicket = computed(() => {
   return (detail.value.createdBy?.username || '').toLowerCase() === un.toLowerCase()
 })
 
+const canTakeReviewAction = computed(() => {
+  if (!userIsKetua.value || !detail.value) return false
+  return detail.value.status === 'PENDING_REVIEW'
+})
+
 const showCancelModal = ref(false)
 const isCancelling = ref(false)
 
@@ -226,9 +234,30 @@ const paymentLabel: Record<string, string> = {
   TRANSFER: 'Transfer Bank',
 }
 
+function getListPath() {
+  return '/payment-requests'
+}
+
+function getBackButtonLabel() {
+  return isReviewDetailRoute.value ? 'Kembali ke daftar review' : 'Kembali ke daftar'
+}
+
+function handleApprovalAction(action: 'approve' | 'reject' | 'revision') {
+  const label = action === 'approve'
+    ? 'Approve'
+    : action === 'reject'
+      ? 'Reject'
+      : 'Request Revision'
+  toast.info(`Aksi ${label} akan diimplementasikan pada PBI approval berikutnya.`)
+}
+
 onMounted(async () => {
   try {
-    await store.fetchPaymentRequestById(id.value)
+    if (isReviewDetailRoute.value) {
+      await store.fetchPaymentRequestReviewById(id.value)
+    } else {
+      await store.fetchPaymentRequestById(id.value)
+    }
   } catch {
     // 403 / 404 / errors: store.detailLoadError or empty detail
   }
@@ -260,7 +289,7 @@ onMounted(async () => {
           </div>
           <h2 class="not-found-title">Tidak memiliki akses</h2>
           <p class="not-found-sub">Anda tidak dapat membuka ticket pengajuan ini.</p>
-          <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          <button type="button" class="btn-primary" @click="router.push(getListPath())">
             Kembali ke daftar
           </button>
         </div>
@@ -277,7 +306,7 @@ onMounted(async () => {
           </div>
           <h2 class="not-found-title">Ticket tidak ditemukan</h2>
           <p class="not-found-sub">Data pengajuan dengan ID tersebut tidak tersedia dalam sistem.</p>
-          <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          <button type="button" class="btn-primary" @click="router.push(getListPath())">
             Kembali ke daftar
           </button>
         </div>
@@ -287,7 +316,7 @@ onMounted(async () => {
         <div class="content-inner">
           <div class="page-header">
             <div class="breadcrumb">
-              <button type="button" class="breadcrumb-link" @click="router.push('/payment-requests')">
+              <button type="button" class="breadcrumb-link" @click="router.push(getListPath())">
                 Pengajuan Dana
               </button>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a1a1a1"
@@ -651,13 +680,39 @@ onMounted(async () => {
             </section>
           </template>
 
+          <section v-if="canTakeReviewAction" class="card card--review-actions">
+            <div class="review-action-row">
+              <button
+                type="button"
+                class="btn-outline-danger"
+                @click="handleApprovalAction('reject')"
+              >
+                Tolak
+              </button>
+              <button
+                type="button"
+                class="btn-outline-warn"
+                @click="handleApprovalAction('revision')"
+              >
+                Minta Revisi
+              </button>
+              <button
+                type="button"
+                class="btn-solid-teal"
+                @click="handleApprovalAction('approve')"
+              >
+                Setujui
+              </button>
+            </div>
+          </section>
+
           <div class="back-row">
-            <button type="button" class="btn-outline-gray" @click="router.push('/payment-requests')">
+            <button type="button" class="btn-outline-gray" @click="router.push(getListPath())">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
               </svg>
-              Kembali ke daftar
+              {{ getBackButtonLabel() }}
             </button>
           </div>
         </div>
@@ -1353,6 +1408,60 @@ onMounted(async () => {
   background: #fffbeb;
   border-color: #fde68a;
   color: #92400e;
+}
+
+.card--review-actions {
+  padding: 18px 24px;
+}
+
+.review-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-outline-danger,
+.btn-outline-warn,
+.btn-solid-teal {
+  height: 40px;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.btn-outline-danger {
+  border: 1px solid #fca5a5;
+  background: #fff;
+  color: #dc2626;
+}
+
+.btn-outline-danger:hover {
+  background: #fef2f2;
+}
+
+.btn-outline-warn {
+  border: 1px solid #fcd34d;
+  background: #fff;
+  color: #b45309;
+}
+
+.btn-outline-warn:hover {
+  background: #fffbeb;
+}
+
+.btn-solid-teal {
+  border: 1px solid #00c6ac;
+  background: #00c6ac;
+  color: #fff;
+}
+
+.btn-solid-teal:hover {
+  background: #00b39c;
+  border-color: #00b39c;
 }
 
 .back-row {

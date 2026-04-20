@@ -11,6 +11,7 @@ import { getAuthToken, handleAuthError } from '@/lib/auth'
 import router from '@/router'
 
 const baseUrl = import.meta.env.VITE_API_URL + '/payment-requests'
+const reviewBaseUrl = import.meta.env.VITE_API_URL + '/payment-requests-review'
 
 export type PaymentRequestDetailLoadError = 'not_found' | 'forbidden' | null
 
@@ -122,6 +123,47 @@ export const usePaymentRequestStore = defineStore('paymentRequest', {
         const response = await axios.get<
           CommonResponseInterface<PaymentRequestDetail>
         >(`${baseUrl}/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        this.currentDetail = response.data.data
+        return response.data.data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          const status = error.response.status
+          if (status === 401) {
+            await handleAuthError(status, router)
+          } else if (status === 403) {
+            this.detailLoadError = 'forbidden'
+          } else if (status === 404) {
+            this.detailLoadError = 'not_found'
+          } else {
+            this.detailLoadError = 'not_found'
+          }
+        } else {
+          this.detailLoadError = 'not_found'
+        }
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchPaymentRequestReviewById(id: string) {
+      this.loading = true
+      this.error = null
+      this.currentDetail = null
+      this.detailLoadError = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.get<
+          CommonResponseInterface<PaymentRequestDetail>
+        >(`${reviewBaseUrl}/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
