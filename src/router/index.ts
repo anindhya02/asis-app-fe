@@ -84,6 +84,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/payment-requests-review/:id",
+      name: "payment-request-review-detail",
+      component: () => import("@/views/ticket/PaymentRequestDetail.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/income-transactions/:id/edit",
       name: "income-transaction-edit",
       component: () => import("@/views/income/IncomeTransactionEdit.vue"),

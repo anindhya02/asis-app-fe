@@ -98,6 +98,10 @@ function formatSubmissionDate(needed?: string | null, created?: string) {
   return '-'
 }
 
+function detailRouteByRole(id: string) {
+  return userIsKetua.value ? `/payment-requests-review/${id}` : `/payment-requests/${id}`
+}
+
 async function fetchData(page = 0) {
   await store.fetchPaymentRequests({
     startDate: startDate.value || undefined,
@@ -293,7 +297,7 @@ onMounted(() => {
                 v-for="item in store.items"
                 :key="item.id"
                 class="data-row"
-                @click="router.push(`/payment-requests/${item.id}`)"
+                @click="router.push(detailRouteByRole(item.id))"
               >
                 <td>{{ formatDate(item.createdAt) }}</td>
                 <td class="td-title">{{ item.title }}</td>
@@ -309,7 +313,7 @@ onMounted(() => {
                   <!-- View -->
                   <button type="button" class="icon-btn"
                     title="Lihat Detail"
-                    @click.stop="router.push(`/payment-requests/${item.id}`)">
+                    @click.stop="router.push(detailRouteByRole(item.id))">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
