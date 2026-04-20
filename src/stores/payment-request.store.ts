@@ -29,6 +29,70 @@ export const usePaymentRequestStore = defineStore('paymentRequest', {
   }),
 
   actions: {
+    async approvePaymentRequest(id: string, reviewNote?: string): Promise<boolean> {
+      return this.submitReviewAction(id, 'approve', reviewNote)
+    },
+
+    async rejectPaymentRequest(id: string, reviewNote: string): Promise<boolean> {
+      return this.submitReviewAction(id, 'reject', reviewNote)
+    },
+
+    async requestPaymentRequestRevision(id: string, reviewNote: string): Promise<boolean> {
+      return this.submitReviewAction(id, 'request-revision', reviewNote)
+    },
+
+    async submitReviewAction(
+      id: string,
+      action: 'approve' | 'reject' | 'request-revision',
+      reviewNote?: string,
+    ): Promise<boolean> {
+      this.error = null
+      const token = getAuthToken()
+
+      try {
+        const payload: { reviewNote?: string } = {}
+        if (typeof reviewNote === 'string') payload.reviewNote = reviewNote
+
+        const response = await axios.patch<
+          CommonResponseInterface<PaymentRequestDetail>
+        >(`${reviewBaseUrl}/${id}/${action}`, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        this.currentDetail = response.data.data
+        return true
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          const status = error.response.status
+          const msg =
+            (error.response.data as CommonResponseInterface<PaymentRequestDetail>)?.message ||
+            (error instanceof Error ? error.message : '')
+
+          if (status === 401) {
+            await handleAuthError(status, router)
+          } else if (status === 404) {
+            this.detailLoadError = 'not_found'
+            toast.error(msg || 'Ticket tidak ditemukan')
+          } else if (status === 403) {
+            this.detailLoadError = 'forbidden'
+            toast.error(msg || 'Anda tidak memiliki akses')
+          } else if (status === 409) {
+            toast.error(msg || 'Ticket sudah diproses / status tidak valid')
+          } else if (status === 400) {
+            toast.error(msg || 'Data review tidak valid')
+          } else {
+            toast.error(msg || 'Gagal memproses review ticket')
+          }
+        } else {
+          toast.error('Gagal memproses review ticket')
+        }
+
+        return false
+      }
+    },
+
     async updatePaymentRequest(id: string, formData: FormData) {
       this.loading = true
       this.error = null

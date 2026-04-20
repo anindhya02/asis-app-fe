@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import PaymentRequestCancelConfirmModal from '@/components/PaymentRequestCancelConfirmModal.vue'
+import PaymentRequestReviewActionModal from '@/components/PaymentRequestReviewActionModal.vue'
 import type { PaymentRequestDetail } from '@/interfaces/payment-request.interface'
 import { getCurrentUser } from '@/lib/auth'
 import { isKetua, isPengurus } from '@/lib/rbac'
@@ -12,6 +13,7 @@ import { toast } from 'vue-sonner'
 const route = useRoute()
 const router = useRouter()
 const store = usePaymentRequestStore()
+type ReviewActionMode = 'approve' | 'reject' | 'revision'
 
 const id = computed(() => {
   const raw = route.params.id
@@ -165,6 +167,9 @@ const canTakeReviewAction = computed(() => {
 
 const showCancelModal = ref(false)
 const isCancelling = ref(false)
+const showReviewActionModal = ref(false)
+const reviewActionType = ref<ReviewActionMode>('approve')
+const isSubmittingReviewAction = ref(false)
 
 function onCancelModalClose() {
   if (isCancelling.value) return
@@ -228,6 +233,25 @@ const breakdownTotal = computed(() => {
 })
 
 const reviewCount = computed(() => detail.value?.reviewHistory?.length ?? 0)
+const latestKetuaNote = computed(() => {
+  const history = detail.value?.reviewHistory
+  if (!history || history.length === 0) return null
+
+  for (let i = history.length - 1; i >= 0; i--) {
+    const item = history[i]
+    const role = (item.actorRole || '').toUpperCase()
+    const note = item.note?.trim()
+    if (role === 'KETUA YAYASAN' && note) {
+      return {
+        note,
+        status: item.status,
+        occurredAt: item.occurredAt,
+      }
+    }
+  }
+
+  return null
+})
 
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
@@ -242,13 +266,40 @@ function getBackButtonLabel() {
   return isReviewDetailRoute.value ? 'Kembali ke daftar review' : 'Kembali ke daftar'
 }
 
-function handleApprovalAction(action: 'approve' | 'reject' | 'revision') {
-  const label = action === 'approve'
-    ? 'Approve'
-    : action === 'reject'
-      ? 'Reject'
-      : 'Request Revision'
-  toast.info(`Aksi ${label} akan diimplementasikan pada PBI approval berikutnya.`)
+function openReviewActionModal(action: ReviewActionMode) {
+  reviewActionType.value = action
+  showReviewActionModal.value = true
+}
+
+function closeReviewActionModal() {
+  if (isSubmittingReviewAction.value) return
+  showReviewActionModal.value = false
+}
+
+async function confirmReviewAction(reviewNote: string) {
+  if (!id.value) return
+  isSubmittingReviewAction.value = true
+
+  try {
+    let ok = false
+    if (reviewActionType.value === 'approve') {
+      ok = await store.approvePaymentRequest(id.value, reviewNote)
+      if (ok) toast.success('Ticket disetujui')
+    } else if (reviewActionType.value === 'reject') {
+      ok = await store.rejectPaymentRequest(id.value, reviewNote)
+      if (ok) toast.success('Ticket ditolak')
+    } else {
+      ok = await store.requestPaymentRequestRevision(id.value, reviewNote)
+      if (ok) toast.success('Revisi diminta')
+    }
+
+    if (ok) {
+      showReviewActionModal.value = false
+      activeTab.value = 'detail'
+    }
+  } finally {
+    isSubmittingReviewAction.value = false
+  }
 }
 
 onMounted(async () => {
@@ -552,6 +603,17 @@ onMounted(async () => {
               </div>
             </section>
 
+            <section v-if="latestKetuaNote" class="card">
+              <h3 class="card-title">Catatan Ketua</h3>
+              <div class="note-box note-box--ketua">
+                <p class="note-text">{{ latestKetuaNote.note }}</p>
+                <p class="note-meta">
+                  {{ labelOf(timelineStatusLabel, latestKetuaNote.status) }} ·
+                  {{ formatDateTime(latestKetuaNote.occurredAt) }}
+                </p>
+              </div>
+            </section>
+
             <section class="card card--subtle">
               <h3 class="card-title card-title--small">Informasi Pengaju</h3>
               <div class="requester-row">
@@ -685,21 +747,24 @@ onMounted(async () => {
               <button
                 type="button"
                 class="btn-outline-danger"
-                @click="handleApprovalAction('reject')"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('reject')"
               >
                 Tolak
               </button>
               <button
                 type="button"
                 class="btn-outline-warn"
-                @click="handleApprovalAction('revision')"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('revision')"
               >
                 Minta Revisi
               </button>
               <button
                 type="button"
                 class="btn-solid-teal"
-                @click="handleApprovalAction('approve')"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('approve')"
               >
                 Setujui
               </button>
@@ -724,6 +789,13 @@ onMounted(async () => {
       :loading="isCancelling"
       @cancel="onCancelModalClose"
       @confirm="confirmCancelTicket"
+    />
+    <PaymentRequestReviewActionModal
+      :is-open="showReviewActionModal"
+      :type="reviewActionType"
+      :loading="isSubmittingReviewAction"
+      @cancel="closeReviewActionModal"
+      @confirm="confirmReviewAction"
     />
   </div>
 </template>
@@ -1081,6 +1153,18 @@ onMounted(async () => {
   color: #404040;
   line-height: 1.6;
   margin: 0;
+}
+
+.note-box--ketua {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.note-meta {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #a16207;
+  font-weight: 600;
 }
 
 .proof-image-wrapper {
@@ -1462,6 +1546,13 @@ onMounted(async () => {
 .btn-solid-teal:hover {
   background: #00b39c;
   border-color: #00b39c;
+}
+
+.btn-outline-danger:disabled,
+.btn-outline-warn:disabled,
+.btn-solid-teal:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .back-row {
