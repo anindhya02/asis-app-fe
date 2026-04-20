@@ -4,13 +4,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import PaymentRequestCancelConfirmModal from '@/components/PaymentRequestCancelConfirmModal.vue'
+import PaymentRequestReviewActionModal from '@/components/PaymentRequestReviewActionModal.vue'
 import type { PaymentRequestDetail } from '@/interfaces/payment-request.interface'
 import { getCurrentUser } from '@/lib/auth'
-import { isPengurus } from '@/lib/rbac'
+import { isKetua, isPengurus } from '@/lib/rbac'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
 const store = usePaymentRequestStore()
+type ReviewActionMode = 'approve' | 'reject' | 'revision'
 
 const id = computed(() => {
   const raw = route.params.id
@@ -20,6 +23,8 @@ const id = computed(() => {
 })
 
 const currentUser = computed(() => getCurrentUser())
+const userIsKetua = computed(() => isKetua())
+const isReviewDetailRoute = computed(() => route.name === 'payment-request-review-detail')
 
 // Tabs: shared layout for Pengurus (PBI-17) and future Ketua actions (PBI-22).
 const activeTab = ref<'detail' | 'review'>('detail')
@@ -155,8 +160,16 @@ const canCancelTicket = computed(() => {
   return (detail.value.createdBy?.username || '').toLowerCase() === un.toLowerCase()
 })
 
+const canTakeReviewAction = computed(() => {
+  if (!userIsKetua.value || !detail.value) return false
+  return detail.value.status === 'PENDING_REVIEW'
+})
+
 const showCancelModal = ref(false)
 const isCancelling = ref(false)
+const showReviewActionModal = ref(false)
+const reviewActionType = ref<ReviewActionMode>('approve')
+const isSubmittingReviewAction = ref(false)
 
 function onCancelModalClose() {
   if (isCancelling.value) return
@@ -220,15 +233,82 @@ const breakdownTotal = computed(() => {
 })
 
 const reviewCount = computed(() => detail.value?.reviewHistory?.length ?? 0)
+const latestKetuaNote = computed(() => {
+  const history = detail.value?.reviewHistory
+  if (!history || history.length === 0) return null
+
+  for (let i = history.length - 1; i >= 0; i--) {
+    const item = history[i]
+    const role = (item.actorRole || '').toUpperCase()
+    const note = item.note?.trim()
+    if (role === 'KETUA YAYASAN' && note) {
+      return {
+        note,
+        status: item.status,
+        occurredAt: item.occurredAt,
+      }
+    }
+  }
+
+  return null
+})
 
 const paymentLabel: Record<string, string> = {
   CASH: 'Tunai',
   TRANSFER: 'Transfer Bank',
 }
 
+function getListPath() {
+  return '/payment-requests'
+}
+
+function getBackButtonLabel() {
+  return isReviewDetailRoute.value ? 'Kembali ke daftar review' : 'Kembali ke daftar'
+}
+
+function openReviewActionModal(action: ReviewActionMode) {
+  reviewActionType.value = action
+  showReviewActionModal.value = true
+}
+
+function closeReviewActionModal() {
+  if (isSubmittingReviewAction.value) return
+  showReviewActionModal.value = false
+}
+
+async function confirmReviewAction(reviewNote: string) {
+  if (!id.value) return
+  isSubmittingReviewAction.value = true
+
+  try {
+    let ok = false
+    if (reviewActionType.value === 'approve') {
+      ok = await store.approvePaymentRequest(id.value, reviewNote)
+      if (ok) toast.success('Ticket disetujui')
+    } else if (reviewActionType.value === 'reject') {
+      ok = await store.rejectPaymentRequest(id.value, reviewNote)
+      if (ok) toast.success('Ticket ditolak')
+    } else {
+      ok = await store.requestPaymentRequestRevision(id.value, reviewNote)
+      if (ok) toast.success('Revisi diminta')
+    }
+
+    if (ok) {
+      showReviewActionModal.value = false
+      activeTab.value = 'detail'
+    }
+  } finally {
+    isSubmittingReviewAction.value = false
+  }
+}
+
 onMounted(async () => {
   try {
-    await store.fetchPaymentRequestById(id.value)
+    if (isReviewDetailRoute.value) {
+      await store.fetchPaymentRequestReviewById(id.value)
+    } else {
+      await store.fetchPaymentRequestById(id.value)
+    }
   } catch {
     // 403 / 404 / errors: store.detailLoadError or empty detail
   }
@@ -260,7 +340,7 @@ onMounted(async () => {
           </div>
           <h2 class="not-found-title">Tidak memiliki akses</h2>
           <p class="not-found-sub">Anda tidak dapat membuka ticket pengajuan ini.</p>
-          <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          <button type="button" class="btn-primary" @click="router.push(getListPath())">
             Kembali ke daftar
           </button>
         </div>
@@ -277,7 +357,7 @@ onMounted(async () => {
           </div>
           <h2 class="not-found-title">Ticket tidak ditemukan</h2>
           <p class="not-found-sub">Data pengajuan dengan ID tersebut tidak tersedia dalam sistem.</p>
-          <button type="button" class="btn-primary" @click="router.push('/payment-requests')">
+          <button type="button" class="btn-primary" @click="router.push(getListPath())">
             Kembali ke daftar
           </button>
         </div>
@@ -287,7 +367,7 @@ onMounted(async () => {
         <div class="content-inner">
           <div class="page-header">
             <div class="breadcrumb">
-              <button type="button" class="breadcrumb-link" @click="router.push('/payment-requests')">
+              <button type="button" class="breadcrumb-link" @click="router.push(getListPath())">
                 Pengajuan Dana
               </button>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a1a1a1"
@@ -523,6 +603,17 @@ onMounted(async () => {
               </div>
             </section>
 
+            <section v-if="latestKetuaNote" class="card">
+              <h3 class="card-title">Catatan Ketua</h3>
+              <div class="note-box note-box--ketua">
+                <p class="note-text">{{ latestKetuaNote.note }}</p>
+                <p class="note-meta">
+                  {{ labelOf(timelineStatusLabel, latestKetuaNote.status) }} ·
+                  {{ formatDateTime(latestKetuaNote.occurredAt) }}
+                </p>
+              </div>
+            </section>
+
             <section class="card card--subtle">
               <h3 class="card-title card-title--small">Informasi Pengaju</h3>
               <div class="requester-row">
@@ -651,13 +742,42 @@ onMounted(async () => {
             </section>
           </template>
 
+          <section v-if="canTakeReviewAction" class="card card--review-actions">
+            <div class="review-action-row">
+              <button
+                type="button"
+                class="btn-outline-danger"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('reject')"
+              >
+                Tolak
+              </button>
+              <button
+                type="button"
+                class="btn-outline-warn"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('revision')"
+              >
+                Minta Revisi
+              </button>
+              <button
+                type="button"
+                class="btn-solid-teal"
+                :disabled="isSubmittingReviewAction"
+                @click="openReviewActionModal('approve')"
+              >
+                Setujui
+              </button>
+            </div>
+          </section>
+
           <div class="back-row">
-            <button type="button" class="btn-outline-gray" @click="router.push('/payment-requests')">
+            <button type="button" class="btn-outline-gray" @click="router.push(getListPath())">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
               </svg>
-              Kembali ke daftar
+              {{ getBackButtonLabel() }}
             </button>
           </div>
         </div>
@@ -669,6 +789,13 @@ onMounted(async () => {
       :loading="isCancelling"
       @cancel="onCancelModalClose"
       @confirm="confirmCancelTicket"
+    />
+    <PaymentRequestReviewActionModal
+      :is-open="showReviewActionModal"
+      :type="reviewActionType"
+      :loading="isSubmittingReviewAction"
+      @cancel="closeReviewActionModal"
+      @confirm="confirmReviewAction"
     />
   </div>
 </template>
@@ -1028,6 +1155,18 @@ onMounted(async () => {
   margin: 0;
 }
 
+.note-box--ketua {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.note-meta {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #a16207;
+  font-weight: 600;
+}
+
 .proof-image-wrapper {
   border: 1px solid #e5e5e5;
   border-radius: 10px;
@@ -1353,6 +1492,67 @@ onMounted(async () => {
   background: #fffbeb;
   border-color: #fde68a;
   color: #92400e;
+}
+
+.card--review-actions {
+  padding: 18px 24px;
+}
+
+.review-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-outline-danger,
+.btn-outline-warn,
+.btn-solid-teal {
+  height: 40px;
+  border-radius: 10px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.btn-outline-danger {
+  border: 1px solid #fca5a5;
+  background: #fff;
+  color: #dc2626;
+}
+
+.btn-outline-danger:hover {
+  background: #fef2f2;
+}
+
+.btn-outline-warn {
+  border: 1px solid #fcd34d;
+  background: #fff;
+  color: #b45309;
+}
+
+.btn-outline-warn:hover {
+  background: #fffbeb;
+}
+
+.btn-solid-teal {
+  border: 1px solid #00c6ac;
+  background: #00c6ac;
+  color: #fff;
+}
+
+.btn-solid-teal:hover {
+  background: #00b39c;
+  border-color: #00b39c;
+}
+
+.btn-outline-danger:disabled,
+.btn-outline-warn:disabled,
+.btn-solid-teal:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .back-row {
