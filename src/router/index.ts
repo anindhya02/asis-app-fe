@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
-import { isAdmin, isKetua, isPengurus } from "@/lib/rbac"
+import { isAdmin, isKetua, isPengurus, canViewFinancialReport } from "@/lib/rbac"
 
 function getHomeRouteByRole(role?: string | null) {
   const r = (role || "").toUpperCase()
@@ -149,6 +149,12 @@ const router = createRouter({
       component: () => import("@/views/activity/ActivityForm.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/financial-report",
+      name: "financial-report",
+      component: () => import("@/views/mis/FinancialReportPage.vue"),
+      meta: { requiresAuth: true, requiresFinancialReport: true },
+    },
   ],
 })
 
@@ -172,6 +178,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresIncomeAccess && !(isPengurus() || isKetua())) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresFinancialReport && !canViewFinancialReport()) {
     return getHomeRouteByRole(user?.role)
   }
 

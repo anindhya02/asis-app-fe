@@ -6,6 +6,7 @@ import AsisSidebar from '@/components/AsisSidebar.vue'
 import CreateUser from '@/views/admin/CreateUser.vue'
 import ViewUser from '@/views/admin/ViewUser.vue'
 import EditUser from '@/views/admin/EditUser.vue'
+import DeactivateUserConfirmModal from '@/components/DeactivateUserConfirmModal.vue'
 
 const userStore = useUserStore()
 
@@ -19,6 +20,9 @@ const ITEMS_PER_PAGE = 5
 const showCreateModal = ref(false)
 const showViewModal = ref(false)
 const showEditModal = ref(false)
+const showDeactivateModal = ref(false)
+const deactivatingUser = ref<User | null>(null)
+const isDeactivating = ref(false)
 const selectedUser = ref<User | null>(null)
 
 onMounted(async () => {
@@ -66,12 +70,23 @@ watch([searchQuery, selectedRole, selectedStatus], () => {
 
 function roleBadgeClass(role: string) {
   const map: Record<string, string> = {
+    'KETUA YAYASAN': 'badge-ketua',
     'Ketua Yayasan': 'badge-ketua',
+    'PENGURUS': 'badge-pengurus',
     'Pengurus': 'badge-pengurus',
+    'DONATUR': 'badge-donatur',
     'Donatur': 'badge-donatur',
+    'ADMIN': 'badge-admin',
     'Admin': 'badge-admin',
   }
   return map[role] ?? 'badge-default'
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  selectedRole.value = ''
+  selectedStatus.value = ''
+  currentPage.value = 1
 }
 
 // View detail
@@ -95,12 +110,27 @@ function closeEdit() {
   selectedUser.value = null
 }
 
-async function deactivateUser(user: User) {
+function openDeactivateConfirm(user: User) {
+  deactivatingUser.value = user
+  showDeactivateModal.value = true
+}
+
+function closeDeactivateConfirm() {
+  showDeactivateModal.value = false
+  deactivatingUser.value = null
+}
+
+async function deactivateUser() {
+  if (!deactivatingUser.value) return
+
+  isDeactivating.value = true
   try {
-    await userStore.deactivateUser(user.userId)
-    await userStore.fetchUsers()
+    await userStore.deactivateUser(deactivatingUser.value.userId)
+    closeDeactivateConfirm()
   } catch (error) {
     console.error('Gagal menonaktifkan user', error)
+  } finally {
+    isDeactivating.value = false
   }
 }
 
@@ -148,6 +178,9 @@ async function onUserSaved() {
             <svg class="chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
 
+          <button class="btn-reset" @click="resetFilters">
+            Reset Filter
+          </button>
           <button class="btn-add" @click="showCreateModal = true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah User
@@ -213,7 +246,7 @@ async function onUserSaved() {
                       class="action-btn"
                       title="Nonaktifkan"
                       :disabled="user.status?.toUpperCase() === 'INACTIVE'"
-                      @click="deactivateUser(user)"
+                      @click="openDeactivateConfirm(user)"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -268,6 +301,13 @@ async function onUserSaved() {
       :user="selectedUser"
       @close="closeEdit"
       @saved="onUserSaved"
+    />
+
+    <DeactivateUserConfirmModal
+      :isOpen="showDeactivateModal"
+      :loading="isDeactivating"
+      @cancel="closeDeactivateConfirm"
+      @confirm="deactivateUser"
     />
   </div>
 </template>
@@ -363,6 +403,26 @@ async function onUserSaved() {
 }
 .btn-add:hover { background: #00b39c; transform: translateY(-1px); }
 
+.btn-reset {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.btn-reset:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #111827;
+}
+
 .table-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .table thead tr { border-bottom: 1px solid #f0f0f0; }
@@ -376,10 +436,10 @@ async function onUserSaved() {
 .empty-cell { text-align: center; color: #9ca3af; padding: 3rem !important; }
 
 .badge { display: inline-block; padding: 3px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; border: 1px solid transparent; }
-.badge-ketua    { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
-.badge-pengurus { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
-.badge-donatur  { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
-.badge-admin    { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
+.badge-ketua    { background:rgb(250, 226, 244); color:rgb(159, 11, 92); border-color:rgb(234, 188, 220); }
+.badge-pengurus { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.badge-donatur  { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+.badge-admin    { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
 .badge-default  { background: #d0f0ea; color: #006B5A; border-color: #a3ddd4; }
 
 .status-pill { display: inline-block; padding: 3px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; border: 1px solid transparent; }

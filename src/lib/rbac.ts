@@ -47,6 +47,11 @@ export function isPengurus(): boolean {
   return user?.role?.toUpperCase() === UserRole.PENGURUS;
 }
 
+/** Pengurus atau Ketua Yayasan — akses laporan keuangan MIS */
+export function canViewFinancialReport(): boolean {
+  return isPengurus() || isKetua();
+}
+
 export function isDonatur(): boolean {
   const user = getCurrentUser();
   return user?.role?.toUpperCase() === UserRole.DONATUR;

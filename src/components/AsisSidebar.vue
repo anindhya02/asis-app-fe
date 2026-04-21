@@ -131,7 +131,12 @@ function cancelLogout() {
             <span>Dashboard Operasional</span>
           </button>
 
-          <button type="button" class="nav-item nav-item--disabled">
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/financial-report') }"
+            @click="go('/financial-report')"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
@@ -208,6 +213,22 @@ function cancelLogout() {
               <polyline points="10 9 9 9 8 9" />
             </svg>
             <span>Pengajuan Dana</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/financial-report') }"
+            @click="go('/financial-report')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+              <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
+            <span>Laporan Keuangan Periodik</span>
           </button>
         </template>
       </nav>
