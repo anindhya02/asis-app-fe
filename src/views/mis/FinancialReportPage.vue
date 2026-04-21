@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { toast } from 'vue-sonner'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import type { FinancialReportCategoryOption, FinancialReportData } from '@/interfaces/financial-report.interface'
@@ -170,7 +170,7 @@ async function fetchReport() {
   }
 }
 
-function exportExcel() {
+async function exportExcel() {
   if (!report.value) {
     toast.error('Belum ada data laporan untuk diekspor')
     return
@@ -182,44 +182,122 @@ function exportExcel() {
       .map((id) => categoryOptions.value.find((opt) => opt.id === id)?.label || id)
       .join(', ')
 
-  const rows: (string | number)[][] = [
-    ['LAPORAN KEUANGAN'],
-    ['Periode', r.periodLabel],
-    ['Rentang tanggal', `${r.dateRange.startDate} s/d ${r.dateRange.endDate}`],
-    ['Filter kategori', selectedLabels],
-    [],
-    ['RINGKASAN'],
-    ['Total pemasukan', formatExcelCurrency(parseAmount(r.totalIncome))],
-    ['Total pengeluaran', formatExcelCurrency(parseAmount(r.totalExpense))],
-    ['Selisih', formatExcelCurrency(parseAmount(r.netDifference))],
-    [],
-    ['Kategori / jenis', 'Total pemasukan', 'Total pengeluaran', 'Selisih'],
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Ringkasan')
+
+  worksheet.columns = [
+    { width: 32 },
+    { width: 28 },
+    { width: 20 },
+    { width: 20 },
   ]
-  for (const b of r.breakdown ?? []) {
-    rows.push([
-      b.label,
-      formatExcelCurrency(parseAmount(b.totalIncome)),
-      formatExcelCurrency(parseAmount(b.totalExpense)),
-      formatExcelCurrency(parseAmount(b.netDifference)),
-    ])
+
+  const fontNormal = { name: 'Cambria', size: 14 }
+  const fontBold = { name: 'Cambria', size: 14, bold: true }
+  const fillGreen = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFB8CE92' } }
+  const fillDark = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF4F6228' } }
+  const thinBorder = {
+    top: { style: 'thin' as const },
+    left: { style: 'thin' as const },
+    bottom: { style: 'thin' as const },
+    right: { style: 'thin' as const },
   }
-  rows.push([])
-  rows.push([
-    'TOTAL',
-    formatExcelCurrency(parseAmount(r.totalIncome)),
-    formatExcelCurrency(parseAmount(r.totalExpense)),
-    formatExcelCurrency(parseAmount(r.netDifference)),
-  ])
 
-  const ws = XLSX.utils.aoa_to_sheet(rows)
-  ws['!cols'] = [{ wch: 36 }, { wch: 22 }, { wch: 22 }, { wch: 22 }]
-  ws['!autofilter'] = { ref: 'A11:D11' }
-  ws['!freeze'] = { xSplit: 0, ySplit: 11 }
+  const headerFill = fillGreen
 
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Ringkasan')
+  // Table 1: informasi report
+  worksheet.mergeCells('A1:B1')
+  worksheet.getCell('A1').value = 'LAPORAN KEUANGAN'
+  worksheet.getCell('A1').font = fontBold
+  worksheet.getCell('A1').fill = headerFill
+  worksheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'left' }
+
+  worksheet.getCell('A2').value = 'Periode'
+  worksheet.getCell('B2').value = r.periodLabel
+  worksheet.getCell('A3').value = 'Rentang tanggal'
+  worksheet.getCell('B3').value = `${r.dateRange.startDate} s/d ${r.dateRange.endDate}`
+  worksheet.getCell('A4').value = 'Filter kategori'
+  worksheet.getCell('B4').value = selectedLabels
+
+  // Table 2: ringkasan
+  worksheet.mergeCells('A6:B6')
+  worksheet.getCell('A6').value = 'RINGKASAN'
+  worksheet.getCell('A6').font = fontBold
+  worksheet.getCell('A6').fill = headerFill
+
+  worksheet.getCell('A7').value = 'Total pemasukan'
+  worksheet.getCell('B7').value = formatExcelCurrency(parseAmount(r.totalIncome))
+  worksheet.getCell('A8').value = 'Total pengeluaran'
+  worksheet.getCell('B8').value = formatExcelCurrency(parseAmount(r.totalExpense))
+  worksheet.getCell('A9').value = 'Selisih'
+  worksheet.getCell('B9').value = formatExcelCurrency(parseAmount(r.netDifference))
+
+  // Table 3: breakdown
+  const headerRow = 11
+  worksheet.getCell(`A${headerRow}`).value = 'Kategori / jenis'
+  worksheet.getCell(`B${headerRow}`).value = 'Total pemasukan'
+  worksheet.getCell(`C${headerRow}`).value = 'Total pengeluaran'
+  worksheet.getCell(`D${headerRow}`).value = 'Selisih'
+
+  let row = headerRow + 1
+  for (const b of r.breakdown ?? []) {
+    worksheet.getCell(`A${row}`).value = b.label
+    worksheet.getCell(`B${row}`).value = formatExcelCurrency(parseAmount(b.totalIncome))
+    worksheet.getCell(`C${row}`).value = formatExcelCurrency(parseAmount(b.totalExpense))
+    worksheet.getCell(`D${row}`).value = formatExcelCurrency(parseAmount(b.netDifference))
+    row++
+  }
+  row++
+  worksheet.getCell(`A${row}`).value = 'TOTAL'
+  worksheet.getCell(`B${row}`).value = formatExcelCurrency(parseAmount(r.totalIncome))
+  worksheet.getCell(`C${row}`).value = formatExcelCurrency(parseAmount(r.totalExpense))
+  worksheet.getCell(`D${row}`).value = formatExcelCurrency(parseAmount(r.netDifference))
+
+  for (let i = 1; i <= row; i++) {
+    for (const col of ['A', 'B', 'C', 'D']) {
+      const c = worksheet.getCell(`${col}${i}`)
+      const isInfoTable = ['A', 'B'].includes(col) && i >= 1 && i <= 4
+      const isSummaryTable = ['A', 'B'].includes(col) && i >= 6 && i <= 9
+      const isBreakdownTable = i >= headerRow && i <= row
+      const isInsideTable = isInfoTable || isSummaryTable || isBreakdownTable
+
+      if (!isInsideTable) {
+        c.value = c.value ?? null
+        c.border = undefined
+        c.fill = undefined
+        c.font = fontNormal
+        continue
+      }
+
+      const isHeaderCell =
+        i === 1 || i === 6 || i === headerRow || i === row
+
+      c.font = isHeaderCell ? fontBold : fontNormal
+      c.border = thinBorder
+      if (isHeaderCell) {
+        c.fill = headerFill
+      } else {
+        c.fill = undefined
+      }
+      c.alignment = {
+        vertical: 'middle',
+        horizontal: col === 'A' ? 'left' : 'left',
+        wrapText: true,
+      }
+    }
+  }
+
   const safe = r.periodLabel.replace(/\s+/g, '_')
-  XLSX.writeFile(wb, `laporan-keuangan_${safe}.xlsx`)
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `laporan-keuangan_${safe}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
   toast.success('File Excel berhasil diunduh')
 }
 </script>
