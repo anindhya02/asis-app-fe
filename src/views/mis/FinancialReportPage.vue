@@ -270,8 +270,8 @@ async function exportExcel() {
 
       if (!isInsideTable) {
         c.value = c.value ?? null
-        c.border = undefined
-        c.fill = undefined
+        c.border = undefined as any
+        c.fill = undefined as any
         c.font = fontNormal
         continue
       }
@@ -284,7 +284,7 @@ async function exportExcel() {
       if (isHeaderCell) {
         c.fill = headerFill
       } else {
-        c.fill = undefined
+        c.fill = undefined as any
       }
       c.alignment = {
         vertical: 'middle',
