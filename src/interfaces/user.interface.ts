@@ -8,7 +8,8 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   nama: string;
   username: string;
-  password: string;
+  newPassword?: string;
+  confirmPassword?: string;
   role: string;
 }
 
@@ -19,6 +20,9 @@ export interface User {
   role: string;
   status: string;
   createdDate: string; 
+  updatedAt?: string;
+  deletedAt?: string;
+  deletedBy?: string;
 }
 
 export interface CurrentUser { 

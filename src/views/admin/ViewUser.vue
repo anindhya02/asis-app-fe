@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { User } from '@/interfaces/user.interface'
 
 interface Props {
@@ -6,14 +7,28 @@ interface Props {
   user: User | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<{ close: [] }>()
+
+const hasUpdatedAt = computed(() => {
+  if (!props.user?.updatedAt) return false
+  if (!props.user?.createdDate) return true
+  return props.user.updatedAt !== props.user.createdDate
+})
+
+const hasDeleteAudit = computed(() =>
+  props.user?.status?.toUpperCase() === 'INACTIVE' && Boolean(props.user?.deletedAt)
+)
 
 function roleBadgeClass(role: string) {
   const map: Record<string, string> = {
+    'KETUA YAYASAN': 'badge-ketua',
     'Ketua Yayasan': 'badge-ketua',
+    'PENGURUS': 'badge-pengurus',
     'Pengurus': 'badge-pengurus',
+    'DONATUR': 'badge-donatur',
     'Donatur': 'badge-donatur',
+    'ADMIN': 'badge-admin',
     'Admin': 'badge-admin',
   }
   return map[role] ?? 'badge-default'
@@ -73,6 +88,31 @@ function roleBadgeClass(role: string) {
               <span class="detail-label">CREATED AT</span>
               <span class="detail-value">{{ user.createdDate?.slice(0, 10) }}</span>
             </div>
+
+            <template v-if="hasUpdatedAt">
+              <div class="divider" />
+
+              <div class="detail-row">
+                <span class="detail-label">UPDATED AT</span>
+                <span class="detail-value">{{ user.updatedAt?.slice(0, 10) }}</span>
+              </div>
+            </template>
+
+            <template v-if="hasDeleteAudit">
+              <div class="divider" />
+
+              <div class="detail-row">
+                <span class="detail-label">DELETED AT</span>
+                <span class="detail-value">{{ user.deletedAt?.slice(0, 10) }}</span>
+              </div>
+
+              <div class="divider" />
+
+              <div class="detail-row">
+                <span class="detail-label">DELETED BY</span>
+                <span class="detail-value">{{ user.deletedBy || '-' }}</span>
+              </div>
+            </template>
 
           </div>
         </div>

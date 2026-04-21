@@ -74,11 +74,16 @@ export function getCurrentUser(): CurrentUser | null {
  * @param statusCode - The HTTP status code from the response.
  * @param router - The Vue Router instance for navigation.
  */
-export async function handleAuthError(statusCode: number, router: any): Promise<void> {
+export async function handleAuthError(statusCode: number, router: any, message?: string): Promise<void> {
   if (statusCode === 401) {
     clearLocalStorage();
-    toast.error('Token expired, try logging in again');
-    router.push('/login');
+    const msg = (message || '').toLowerCase()
+    if (msg.includes('expired')) {
+      toast.error('Token expired, silakan login ulang')
+    } else {
+      toast.error('Sesi tidak valid, silakan login ulang')
+    }
+    router.push('/auth/login');
   } else if (statusCode === 403) {
     toast.error('Access forbidden');
     router.push('/');
