@@ -8,13 +8,11 @@ export type PaymentRequestStatus =
 
 export type ExpenseCategory =
   | 'OPERASIONAL'
-  | 'KONSUMSI'
+  | 'GAJI_HONOR'
+  | 'PROGRAM'
+  | 'UTILITAS'
+  | 'PEMELIHARAAN'
   | 'TRANSPORTASI'
-  | 'PERLENGKAPAN'
-  | 'PROGRAM_KEGIATAN'
-  | 'GAJI'
-  | 'INFRASTRUKTUR'
-  | 'LAIN_LAIN'
 
 export type PaymentMethod = 'CASH' | 'TRANSFER'
 

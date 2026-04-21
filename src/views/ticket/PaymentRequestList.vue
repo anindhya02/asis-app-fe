@@ -52,13 +52,11 @@ const search = ref<string>('')
 
 const categoryLabel: Record<string, string> = {
   OPERASIONAL: 'Operasional',
-  KONSUMSI: 'Konsumsi',
+  GAJI_HONOR: 'Gaji & Honor',
+  PROGRAM: 'Program',
+  UTILITAS: 'Utilitas',
+  PEMELIHARAAN: 'Pemeliharaan',
   TRANSPORTASI: 'Transportasi',
-  PERLENGKAPAN: 'Perlengkapan',
-  PROGRAM_KEGIATAN: 'Program Kegiatan',
-  GAJI: 'Gaji & Honor',
-  INFRASTRUKTUR: 'Infrastruktur',
-  LAIN_LAIN: 'Lain-lain',
 }
 
 const statusLabel: Record<string, string> = {
@@ -190,13 +188,11 @@ onMounted(() => {
             <select v-model="expenseCategory" @change="handleFilter">
               <option value="">Semua Kategori</option>
               <option value="OPERASIONAL">Operasional</option>
-              <option value="KONSUMSI">Konsumsi</option>
+              <option value="GAJI_HONOR">Gaji &amp; Honor</option>
+              <option value="PROGRAM">Program</option>
+              <option value="UTILITAS">Utilitas</option>
+              <option value="PEMELIHARAAN">Pemeliharaan</option>
               <option value="TRANSPORTASI">Transportasi</option>
-              <option value="PERLENGKAPAN">Perlengkapan</option>
-              <option value="PROGRAM_KEGIATAN">Program Kegiatan</option>
-              <option value="GAJI">Gaji &amp; Honor</option>
-              <option value="INFRASTRUKTUR">Infrastruktur</option>
-              <option value="LAIN_LAIN">Lain-lain</option>
             </select>
           </div>
           <div class="field">
