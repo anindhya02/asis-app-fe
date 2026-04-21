@@ -237,6 +237,7 @@ const latestKetuaNote = computed(() => {
 
   for (let i = history.length - 1; i >= 0; i--) {
     const item = history[i]
+    if (!item) continue
     const role = (item.actorRole || '').toUpperCase()
     const note = item.note?.trim()
     if (role === 'KETUA YAYASAN' && note) {
