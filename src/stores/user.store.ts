@@ -169,9 +169,8 @@ export const useUserStore = defineStore('user', {
       const token = getAuthToken();
 
       try {
-        const response = await axios.patch<CommonResponseInterface<User>>(
-          `${baseUserUrl}/${userId}/deactivate`,
-          {},
+        const response = await axios.delete<CommonResponseInterface<User | null>>(
+          `${baseUserUrl}/${userId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -180,14 +179,29 @@ export const useUserStore = defineStore('user', {
         );
 
         const updatedUser = response.data.data;
-        this.users = this.users.map((user) => user.userId === userId ? updatedUser : user);
-        toast.success('User berhasil dinonaktifkan');
+        if (updatedUser) {
+          this.users = this.users.map((user) => user.userId === userId ? updatedUser : user);
+        } else {
+          this.users = this.users.map((user) =>
+            user.userId === userId ? { ...user, status: 'INACTIVE' } : user
+          );
+        }
+
+        toast.success(response.data.message || 'Akun berhasil dinonaktifkan');
         return updatedUser;
       } catch (error) {
         if (axios.isAxiosError(error) && error.response) {
-          if (error.response.status === 401 || error.response.status === 403) {
-            await handleAuthError(error.response.status, router);
+          if (error.response.status === 401) {
+            toast.error(error.response.data?.message || 'Sesi login tidak valid. Coba login ulang.');
+          } else if (error.response.status === 403) {
+            await handleAuthError(error.response.status, router, error.response.data?.message);
+          } else if (error.response.status === 404) {
+            toast.error(error.response.data?.message || 'Akun tidak ditemukan');
+          } else {
+            toast.error(error.response.data?.message || 'Gagal menonaktifkan akun');
           }
+        } else {
+          toast.error('Gagal menonaktifkan akun');
         }
 
         this.error = error instanceof Error ? error.message : 'Unknown error';
