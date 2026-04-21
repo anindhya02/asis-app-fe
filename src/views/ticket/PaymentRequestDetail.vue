@@ -31,13 +31,11 @@ const activeTab = ref<'detail' | 'review'>('detail')
 
 const categoryLabel: Record<string, string> = {
   OPERASIONAL: 'Operasional',
-  KONSUMSI: 'Konsumsi',
+  GAJI_HONOR: 'Gaji & Honor',
+  PROGRAM: 'Program',
+  UTILITAS: 'Utilitas',
+  PEMELIHARAAN: 'Pemeliharaan',
   TRANSPORTASI: 'Transportasi',
-  PERLENGKAPAN: 'Perlengkapan',
-  PROGRAM_KEGIATAN: 'Program Kegiatan',
-  GAJI: 'Gaji & Honor',
-  INFRASTRUKTUR: 'Infrastruktur',
-  LAIN_LAIN: 'Lain-lain',
 }
 
 const statusLabel: Record<string, string> = {

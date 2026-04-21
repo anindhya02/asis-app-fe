@@ -52,61 +52,50 @@ const touched = ref<Record<string, boolean>>({})
 // ──── Options ────
 const categoryOptions = [
   { label: 'Operasional', value: 'OPERASIONAL' },
-  { label: 'Konsumsi', value: 'KONSUMSI' },
+  { label: 'Gaji & Honor', value: 'GAJI_HONOR' },
+  { label: 'Program', value: 'PROGRAM' },
+  { label: 'Utilitas', value: 'UTILITAS' },
+  { label: 'Pemeliharaan', value: 'PEMELIHARAAN' },
   { label: 'Transportasi', value: 'TRANSPORTASI' },
-  { label: 'Perlengkapan', value: 'PERLENGKAPAN' },
-  { label: 'Program Kegiatan', value: 'PROGRAM_KEGIATAN' },
-  { label: 'Gaji & Honor', value: 'GAJI' },
-  { label: 'Infrastruktur', value: 'INFRASTRUKTUR' },
-  { label: 'Lain-lain', value: 'LAIN_LAIN' },
 ]
 
 const subCategoryMap: Record<string, { label: string; value: string }[]> = {
   OPERASIONAL: [
-    { label: 'Listrik', value: 'Listrik' },
-    { label: 'Air', value: 'Air' },
-    { label: 'Internet', value: 'Internet' },
-    { label: 'Telepon', value: 'Telepon' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
+    { label: 'Alat tulis kantor', value: 'ALAT_TULIS_KANTOR' },
+    { label: 'Perlengkapan', value: 'PERLENGKAPAN' },
+    { label: 'Konsumsi', value: 'KONSUMSI' },
+    { label: 'Cetak & fotokopi', value: 'CETAK_FOTOKOPI' },
   ],
-  KONSUMSI: [
-    { label: 'Makanan', value: 'Makanan' },
-    { label: 'Minuman', value: 'Minuman' },
-    { label: 'Snack', value: 'Snack' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
+  GAJI_HONOR: [
+    { label: 'Gaji tetap', value: 'GAJI_TETAP' },
+    { label: 'Honor kegiatan', value: 'HONOR_KEGIATAN' },
+    { label: 'Insentif', value: 'INSENTIF' },
+    { label: 'THR', value: 'THR' },
+  ],
+  PROGRAM: [
+    { label: 'Pendidikan', value: 'PENDIDIKAN' },
+    { label: 'Sosial', value: 'SOSIAL' },
+    { label: 'Kesehatan', value: 'KESEHATAN' },
+    { label: 'Dakwah', value: 'DAKWAH' },
+    { label: 'Pembangunan', value: 'PEMBANGUNAN' },
+  ],
+  UTILITAS: [
+    { label: 'Listrik', value: 'LISTRIK' },
+    { label: 'Air', value: 'AIR' },
+    { label: 'Internet', value: 'INTERNET' },
+    { label: 'Telepon', value: 'TELEPON' },
+  ],
+  PEMELIHARAAN: [
+    { label: 'Gedung', value: 'GEDUNG' },
+    { label: 'Kendaraan', value: 'KENDARAAN' },
+    { label: 'Peralatan', value: 'PERALATAN' },
+    { label: 'Taman', value: 'TAMAN' },
   ],
   TRANSPORTASI: [
     { label: 'BBM', value: 'BBM' },
-    { label: 'Tol', value: 'Tol' },
-    { label: 'Parkir', value: 'Parkir' },
-    { label: 'Sewa Kendaraan', value: 'Sewa Kendaraan' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
-  ],
-  PERLENGKAPAN: [
-    { label: 'ATK', value: 'ATK' },
-    { label: 'Peralatan', value: 'Peralatan' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
-  ],
-  PROGRAM_KEGIATAN: [
-    { label: 'Santunan', value: 'Santunan' },
-    { label: 'Beasiswa', value: 'Beasiswa' },
-    { label: 'Kegiatan Sosial', value: 'Kegiatan Sosial' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
-  ],
-  GAJI: [
-    { label: 'Gaji Pokok', value: 'Gaji Pokok' },
-    { label: 'Honor', value: 'Honor' },
-    { label: 'Tunjangan', value: 'Tunjangan' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
-  ],
-  INFRASTRUKTUR: [
-    { label: 'Renovasi', value: 'Renovasi' },
-    { label: 'Pembangunan', value: 'Pembangunan' },
-    { label: 'Perbaikan', value: 'Perbaikan' },
-    { label: 'Lain-lain', value: 'Lain-lain' },
-  ],
-  LAIN_LAIN: [
-    { label: 'Lain-lain', value: 'Lain-lain' },
+    { label: 'Sewa kendaraan', value: 'SEWA_KENDARAAN' },
+    { label: 'Tol & parkir', value: 'TOL_PARKIR' },
+    { label: 'Tiket perjalanan', value: 'TIKET_PERJALANAN' },
   ],
 }
 
