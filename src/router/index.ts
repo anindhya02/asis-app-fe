@@ -155,6 +155,24 @@ const router = createRouter({
       component: () => import("@/views/mis/FinancialReportPage.vue"),
       meta: { requiresAuth: true, requiresFinancialReport: true },
     },
+    {
+      path: "/inventory",
+      name: "inventory-list",
+      component: () => import("@/views/inventory/InventoryList.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
+    {
+      path: "/inventory/create",
+      name: "inventory-create",
+      component: () => import("@/views/inventory/InventoryCreate.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
+    {
+      path: "/inventory/:id",
+      name: "inventory-detail",
+      component: () => import("@/views/inventory/InventoryDetail.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
   ],
 })
 
@@ -182,6 +200,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresFinancialReport && !canViewFinancialReport()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresInventoryAccess && !(isPengurus() || isKetua())) {
     return getHomeRouteByRole(user?.role)
   }
 
