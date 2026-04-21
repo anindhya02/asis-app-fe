@@ -26,6 +26,11 @@ export function getLocalStorage<T>(key: string): T | null {
     if (!item) return null;
     return JSON.parse(item) as T;
   } catch (error) {
+    // Backward compatibility: some older values may be stored as plain string.
+    const fallback = localStorage.getItem(key);
+    if (fallback) {
+      return fallback as T;
+    }
     console.error(`Failed to parse localStorage item "${key}":`, error);
     return null;
   }
@@ -59,7 +64,24 @@ export function clearLocalStorage(): void {
  * @returns The auth token string or null if not found.
  */
 export function getAuthToken(): string | null {
-  return getLocalStorage<string>('token');
+  const raw = getLocalStorage<unknown>('token');
+  if (raw == null) return null;
+
+  // Support mixed legacy formats in localStorage (JSON string/plain string/Bearer prefixed).
+  let token = String(raw).replace(/^"+|"+$/g, '').trim();
+  if (!token || token.toLowerCase() === 'null' || token.toLowerCase() === 'undefined') {
+    return null;
+  }
+  if (token.startsWith('Bearer ')) {
+    token = token.slice(7).trim();
+  }
+
+  // Basic JWT shape validation: must contain 3 dot-separated segments.
+  if (token.split('.').length !== 3) {
+    return null;
+  }
+
+  return token;
 }
  
 /**
