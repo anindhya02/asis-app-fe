@@ -5,8 +5,7 @@ import ExcelJS from 'exceljs'
 import { toast } from 'vue-sonner'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import type { FinancialReportCategoryOption, FinancialReportData } from '@/interfaces/financial-report.interface'
-import { getAuthToken, handleAuthError } from '@/lib/auth'
-import router from '@/router'
+import { getAuthToken } from '@/lib/auth'
 
 const period = ref<'monthly' | 'quarterly' | 'yearly'>('monthly')
 const year = ref(new Date().getFullYear())
@@ -133,6 +132,12 @@ async function fetchReport() {
   loading.value = true
   hasFetched.value = true
   const token = getAuthToken()
+  if (!token) {
+    loading.value = false
+    report.value = null
+    errorMessage.value = 'Sesi login tidak ditemukan. Silakan login ulang.'
+    return
+  }
   const params: Record<string, string | number> = {
     period: period.value,
     year: year.value,
@@ -155,7 +160,9 @@ async function fetchReport() {
   } catch (e: unknown) {
     report.value = null
     if (axios.isAxiosError(e) && e.response?.status === 401) {
-      await handleAuthError(401, router)
+      errorMessage.value = String(
+        e.response?.data?.message || 'Sesi tidak valid. Silakan login ulang.',
+      )
       return
     }
     if (axios.isAxiosError(e) && e.response?.data?.message) {
