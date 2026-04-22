@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activity.store'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import DeleteActivityModal from '@/components/DeleteActivityModal.vue'
+import { isAdmin, isPengurus } from '@/lib/rbac'
 import { KATEGORI_OPTIONS } from '@/interfaces/activity.interface'
 import type { ActivityResponse, AttachmentResponse } from '@/interfaces/activity.interface'
 
@@ -53,6 +54,7 @@ const paginated = computed(() => {
 })
 
 const hasFilter = computed(() => !!(search.value || startDate.value || endDate.value || category.value))
+const canManageActivity = computed(() => isAdmin() || isPengurus())
 
 watch(viewMode, () => {
   currentPage.value = 1
@@ -154,6 +156,7 @@ function resetFilter() {
 }
 
 async function handleDeleteConfirm() {
+  if (!canManageActivity.value) return
   if (!deleteTarget.value) return
   const targetId = deleteTarget.value.id
   try {
@@ -267,7 +270,7 @@ onBeforeUnmount(() => {
               </svg>
               Reset Filter
             </button>
-            <button type="button" class="primary-btn" @click="router.push('/activities/create')">
+            <button v-if="canManageActivity" type="button" class="primary-btn" @click="router.push('/activities/create')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -307,7 +310,7 @@ onBeforeUnmount(() => {
           </div>
           <h2 class="empty-title">Belum ada postingan kegiatan</h2>
           <p class="empty-sub">Mulai dokumentasikan kegiatan untuk meningkatkan transparansi.</p>
-          <button type="button" class="primary-btn" @click="router.push('/activities/create')">
+          <button v-if="canManageActivity" type="button" class="primary-btn" @click="router.push('/activities/create')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -389,7 +392,7 @@ onBeforeUnmount(() => {
                   </svg>
                   Lihat Detail
                 </button>
-                <button type="button" class="btn-icon" title="Edit"
+                <button v-if="canManageActivity" type="button" class="btn-icon" title="Edit"
                   @click="router.push(`/activities/${item.id}/edit`)">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -397,7 +400,7 @@ onBeforeUnmount(() => {
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
-                <button type="button" class="btn-icon btn-icon--danger" title="Hapus"
+                <button v-if="canManageActivity" type="button" class="btn-icon btn-icon--danger" title="Hapus"
                   @click="deleteTarget = item">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -439,13 +442,13 @@ onBeforeUnmount(() => {
                         <circle cx="12" cy="12" r="3" />
                       </svg>
                     </button>
-                    <button type="button" class="table-action-btn" title="Edit" @click="router.push(`/activities/${item.id}/edit`)">
+                    <button v-if="canManageActivity" type="button" class="table-action-btn" title="Edit" @click="router.push(`/activities/${item.id}/edit`)">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
-                    <button type="button" class="table-action-btn table-action-btn--danger" title="Delete" @click="deleteTarget = item">
+                    <button v-if="canManageActivity" type="button" class="table-action-btn table-action-btn--danger" title="Delete" @click="deleteTarget = item">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -494,6 +497,7 @@ onBeforeUnmount(() => {
 
     <!-- Delete Modal -->
     <DeleteActivityModal
+      v-if="canManageActivity"
       ref="deleteModalRef"
       :isOpen="!!deleteTarget"
       :title="deleteTarget?.title ?? ''"
