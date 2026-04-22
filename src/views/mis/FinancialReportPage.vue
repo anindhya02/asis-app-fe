@@ -30,7 +30,6 @@ const monthNames = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ]
 
-/** Sumber tunggal: sama dengan enum BE + label laporan masuk/keluar (bukan dari response agar tidak berubah saat refresh/error). */
 const categoryOptions = computed<FinancialReportCategoryOption[]>(() => FINANCIAL_REPORT_CATEGORY_OPTIONS)
 
 const selectedCategoryText = computed(() => {
@@ -151,9 +150,7 @@ async function fetchReport() {
   } catch (e: unknown) {
     report.value = null
     if (axios.isAxiosError(e) && e.response?.status === 401) {
-      errorMessage.value = String(
-        e.response?.data?.message || 'Sesi tidak valid. Silakan login ulang.',
-      )
+      errorMessage.value = String(e.response?.data?.message || 'Sesi tidak valid. Silakan login ulang.')
       return
     }
     if (axios.isAxiosError(e) && e.response?.data?.message) {
@@ -193,7 +190,6 @@ async function exportExcel() {
   const fontNormal = { name: 'Cambria', size: 14 }
   const fontBold = { name: 'Cambria', size: 14, bold: true }
   const fillGreen = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFB8CE92' } }
-  const fillDark = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF4F6228' } }
   const thinBorder = {
     top: { style: 'thin' as const },
     left: { style: 'thin' as const },
@@ -203,7 +199,6 @@ async function exportExcel() {
 
   const headerFill = fillGreen
 
-  // Table 1: informasi report
   worksheet.mergeCells('A1:B1')
   worksheet.getCell('A1').value = 'LAPORAN KEUANGAN'
   worksheet.getCell('A1').font = fontBold
@@ -217,7 +212,6 @@ async function exportExcel() {
   worksheet.getCell('A4').value = 'Filter kategori'
   worksheet.getCell('B4').value = selectedLabels
 
-  // Table 2: ringkasan
   worksheet.mergeCells('A6:B6')
   worksheet.getCell('A6').value = 'RINGKASAN'
   worksheet.getCell('A6').font = fontBold
@@ -230,7 +224,6 @@ async function exportExcel() {
   worksheet.getCell('A9').value = 'Selisih'
   worksheet.getCell('B9').value = formatExcelCurrency(parseAmount(r.netDifference))
 
-  // Table 3: breakdown
   const headerRow = 11
   worksheet.getCell(`A${headerRow}`).value = 'Kategori / jenis'
   worksheet.getCell(`B${headerRow}`).value = 'Total pemasukan'
@@ -267,9 +260,7 @@ async function exportExcel() {
         continue
       }
 
-      const isHeaderCell =
-        i === 1 || i === 6 || i === headerRow || i === row
-
+      const isHeaderCell = i === 1 || i === 6 || i === headerRow || i === row
       c.font = isHeaderCell ? fontBold : fontNormal
       c.border = thinBorder
       if (isHeaderCell) {
@@ -277,11 +268,7 @@ async function exportExcel() {
       } else {
         c.fill = undefined as any
       }
-      c.alignment = {
-        vertical: 'middle',
-        horizontal: col === 'A' ? 'left' : 'left',
-        wrapText: true,
-      }
+      c.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
     }
   }
 
@@ -303,100 +290,99 @@ async function exportExcel() {
 <template>
   <div class="layout">
     <AsisSidebar />
-    <main class="main">
-      <div class="content">
-        <header class="page-head">
-          <div>
-            <h1 class="page-title">Laporan Keuangan</h1>
-            <p class="page-sub">
-              Ringkasan pemasukan dan pengeluaran dari transaksi kas masuk dan kas keluar per periode.
-            </p>
-          </div>
-          <button type="button" class="btn-export" :disabled="!report" @click="exportExcel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Ekspor Excel
-          </button>
-        </header>
 
-        <section class="filter-card">
-          <div class="filter-head">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-            </svg>
-            <span>Filter data</span>
-          </div>
+    <main class="content">
+      <!-- Header -->
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Laporan Keuangan</h1>
+          <p class="page-subtitle">
+            Ringkasan pemasukan dan pengeluaran dari transaksi kas masuk dan kas keluar per periode.
+          </p>
+        </div>
+        <button type="button" class="btn-export" :disabled="!report" @click="exportExcel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Ekspor Excel
+        </button>
+      </header>
 
-          <div class="filter-grid">
-            <div class="field">
-              <label class="lbl">Periode</label>
-              <div class="seg">
-                <button type="button" class="seg-btn" :class="{ on: period === 'monthly' }" @click="period = 'monthly'">Bulanan</button>
-                <button type="button" class="seg-btn" :class="{ on: period === 'quarterly' }" @click="period = 'quarterly'">Triwulan</button>
-                <button type="button" class="seg-btn" :class="{ on: period === 'yearly' }" @click="period = 'yearly'">Tahunan</button>
-              </div>
-            </div>
+      <!-- Filter Card -->
+      <section class="filter-card">
+        <div class="filter-head">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16" /><path d="M6 12h12" /><path d="M10 20h4" />
+          </svg>
+          <span>Filter Data</span>
+        </div>
 
-            <div class="field">
-              <label class="lbl">Tahun</label>
-              <select v-model.number="year" class="inp">
-                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-              </select>
-            </div>
-
-            <div v-if="period === 'monthly'" class="field">
-              <label class="lbl">Bulan</label>
-              <select v-model.number="month" class="inp">
-                <option v-for="(m, idx) in monthNames" :key="idx" :value="idx + 1">{{ m }}</option>
-              </select>
-            </div>
-
-            <div v-if="period === 'quarterly'" class="field">
-              <label class="lbl">Triwulan</label>
-              <select v-model.number="quarter" class="inp">
-                <option :value="1">Triwulan 1 (Jan–Mar)</option>
-                <option :value="2">Triwulan 2 (Apr–Jun)</option>
-                <option :value="3">Triwulan 3 (Jul–Sep)</option>
-                <option :value="4">Triwulan 4 (Okt–Des)</option>
-              </select>
-            </div>
-
-            <div class="field field-category">
-              <label class="lbl">Kategori</label>
-              <button type="button" class="inp category-trigger" @click="showCategoryMenu = !showCategoryMenu">
-                <span>{{ selectedCategoryText }}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              <div v-if="showCategoryMenu" class="category-menu">
-                <label v-for="opt in categoryOptions" :key="opt.id" class="cat-item">
-                  <input
-                    type="checkbox"
-                    :checked="selectedCategoryIds.includes(opt.id)"
-                    @change="toggleCategory(opt.id)"
-                  />
-                  <span>{{ opt.label }}</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="field field-actions">
-              <label class="lbl">&nbsp;</label>
-              <div class="action-row">
-                <button type="button" class="btn-reset" :disabled="loading" @click="resetFilters">Reset filter</button>
-                <button type="button" class="btn-primary" :disabled="loading" @click="fetchReport">
-                  <span v-if="loading" class="spin" />
-                  {{ loading ? 'Memuat…' : 'Terapkan filter' }}
-                </button>
-              </div>
+        <div class="filter-grid">
+          <!-- Periode -->
+          <div class="field">
+            <label class="lbl">Periode</label>
+            <div class="seg">
+              <button type="button" class="seg-btn" :class="{ on: period === 'monthly' }" @click="period = 'monthly'">Bulanan</button>
+              <button type="button" class="seg-btn" :class="{ on: period === 'quarterly' }" @click="period = 'quarterly'">Triwulan</button>
+              <button type="button" class="seg-btn" :class="{ on: period === 'yearly' }" @click="period = 'yearly'">Tahunan</button>
             </div>
           </div>
 
-          <div v-if="selectedCategoryLabels.length > 0" class="active-filters">
+          <!-- Tahun -->
+          <div class="field">
+            <label class="lbl">Tahun</label>
+            <select v-model.number="year" class="inp">
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+
+          <!-- Bulan (monthly) -->
+          <div v-if="period === 'monthly'" class="field">
+            <label class="lbl">Bulan</label>
+            <select v-model.number="month" class="inp">
+              <option v-for="(m, idx) in monthNames" :key="idx" :value="idx + 1">{{ m }}</option>
+            </select>
+          </div>
+
+          <!-- Triwulan (quarterly) -->
+          <div v-if="period === 'quarterly'" class="field">
+            <label class="lbl">Triwulan</label>
+            <select v-model.number="quarter" class="inp">
+              <option :value="1">Triwulan 1 (Jan–Mar)</option>
+              <option :value="2">Triwulan 2 (Apr–Jun)</option>
+              <option :value="3">Triwulan 3 (Jul–Sep)</option>
+              <option :value="4">Triwulan 4 (Okt–Des)</option>
+            </select>
+          </div>
+
+          <!-- Kategori -->
+          <div class="field field-category">
+            <label class="lbl">Kategori</label>
+            <button type="button" class="inp category-trigger" @click="showCategoryMenu = !showCategoryMenu">
+              <span>{{ selectedCategoryText }}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            <div v-if="showCategoryMenu" class="category-menu">
+              <label v-for="opt in categoryOptions" :key="opt.id" class="cat-item">
+                <input
+                  type="checkbox"
+                  :checked="selectedCategoryIds.includes(opt.id)"
+                  @change="toggleCategory(opt.id)"
+                />
+                <span>{{ opt.label }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom row: active chips + reset + apply -->
+        <div class="filter-bottom">
+          <div class="active-filters" v-if="selectedCategoryLabels.length > 0">
             <span class="active-label">Filter aktif:</span>
             <button
               v-for="item in selectedCategoryLabels"
@@ -409,198 +395,291 @@ async function exportExcel() {
               <span class="chip-close">×</span>
             </button>
           </div>
-        </section>
+          <div v-else style="flex: 1" />
 
-        <div v-if="errorMessage" class="alert alert-err">{{ errorMessage }}</div>
+          <button type="button" class="secondary-btn" :disabled="loading" @click="resetFilters">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            Reset Filter
+          </button>
+          <button type="button" class="primary-btn" :disabled="loading" @click="fetchReport">
+            <span v-if="loading" class="spin" />
+            {{ loading ? 'Memuat…' : 'Terapkan Filter' }}
+          </button>
+        </div>
+      </section>
 
-        <template v-if="report && !errorMessage">
-          <div class="period-chip">{{ report.periodLabel }}</div>
+      <!-- Error -->
+      <div v-if="errorMessage" class="alert alert-err">{{ errorMessage }}</div>
 
-          <div class="cards">
-            <div class="card card-in">
-              <div class="card-icon icon-in">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="8 12 12 8 16 12" />
-                  <line x1="12" y1="16" x2="12" y2="8" />
-                </svg>
-              </div>
-              <span class="card-lbl">Total pemasukan</span>
-              <span class="card-val val-in">{{ formatAmount(parseAmount(report.totalIncome)) }}</span>
-              <span class="card-hint card-hint-in">
-                <i class="bi bi-arrow-down"></i>
-                Pemasukan periode ini
-              </span>
+      <!-- Report content -->
+      <template v-if="report && !errorMessage">
+        <div class="period-chip">{{ report.periodLabel }}</div>
+
+        <!-- Summary Cards -->
+        <div class="cards">
+          <div class="card">
+            <div class="card-icon icon-in">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="8 12 12 8 16 12" />
+                <line x1="12" y1="16" x2="12" y2="8" />
+              </svg>
             </div>
-            <div class="card card-out">
-              <div class="card-icon icon-out">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="8 12 12 16 16 12" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                </svg>
-              </div>
-              <span class="card-lbl">Total pengeluaran</span>
-              <span class="card-val val-out">{{ formatAmount(parseAmount(report.totalExpense)) }}</span>
-              <span class="card-hint card-hint-out">
-                <i class="bi bi-box-arrow-up-right"></i>
-                Pengeluaran periode ini
-              </span>
-            </div>
-            <div class="card card-net">
-              <div class="card-icon" :class="isNetDeficit ? 'icon-out' : 'icon-in'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <template v-if="isNetDeficit">
-                    <path d="M7 7L17 17" />
-                    <path d="M17 13v4h-4" />
-                  </template>
-                  <template v-else>
-                    <path d="M7 17L17 7" />
-                    <path d="M13 7h4v4" />
-                  </template>
-                </svg>
-              </div>
-              <span class="card-lbl">Selisih</span>
-              <span class="card-val" :class="netClass">{{ formatAmount(parseAmount(report.netDifference)) }}</span>
-              <span class="card-hint" :class="isNetDeficit ? 'card-hint-out' : 'card-hint-net'">
-                <i :class="isNetDeficit ? 'bi bi-arrow-down' : 'bi bi-arrow-up'"></i>
-                {{ isNetDeficit ? 'Keuangan defisit' : 'Keuangan surplus' }}
-              </span>
-            </div>
+            <span class="card-lbl">Total Pemasukan</span>
+            <span class="card-val val-in">{{ formatAmount(parseAmount(report.totalIncome)) }}</span>
+            <span class="card-hint card-hint-in">Pemasukan periode ini</span>
           </div>
 
-          <section class="table-card">
-            <div class="table-head">
-              <h2>Ringkasan per kategori</h2>
-              <span class="badge-count">{{ report.breakdown?.length ?? 0 }} baris</span>
+          <div class="card">
+            <div class="card-icon icon-out">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="8 12 12 16 16 12" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+              </svg>
             </div>
+            <span class="card-lbl">Total Pengeluaran</span>
+            <span class="card-val val-out">{{ formatAmount(parseAmount(report.totalExpense)) }}</span>
+            <span class="card-hint card-hint-out">Pengeluaran periode ini</span>
+          </div>
 
-            <div v-if="isEmpty" class="empty">
-              <p>Tidak ada transaksi pada periode ini.</p>
-              <p class="empty-sub">Coba ubah periode atau terapkan filter lain.</p>
+          <div class="card">
+            <div class="card-icon" :class="isNetDeficit ? 'icon-out' : 'icon-in'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <template v-if="isNetDeficit">
+                  <path d="M7 7L17 17" />
+                  <path d="M17 13v4h-4" />
+                </template>
+                <template v-else>
+                  <path d="M7 17L17 7" />
+                  <path d="M13 7h4v4" />
+                </template>
+              </svg>
             </div>
-
-            <table v-else class="tbl">
-              <thead>
-                <tr>
-                  <th>Kategori</th>
-                  <th class="num">Total pemasukan</th>
-                  <th class="num">Total pengeluaran</th>
-                  <th class="num">Selisih</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, i) in report.breakdown" :key="i">
-                  <td>
-                    <span class="dot" :class="row.rowType === 'INCOME' ? 'dot-in' : 'dot-out'" />
-                    {{ row.label }}
-                  </td>
-                  <td class="num val-in">{{ formatAmount(parseAmount(row.totalIncome)) }}</td>
-                  <td class="num val-out">{{ formatAmount(parseAmount(row.totalExpense)) }}</td>
-                  <td class="num" :class="parseAmount(row.netDifference) >= 0 ? 'val-in' : 'val-out'">
-                    {{ formatAmount(parseAmount(row.netDifference)) }}
-                  </td>
-                </tr>
-                <tr class="total-row">
-                  <td><strong>Total keseluruhan</strong></td>
-                  <td class="num val-in"><strong>{{ formatAmount(parseAmount(report.totalIncome)) }}</strong></td>
-                  <td class="num val-out"><strong>{{ formatAmount(parseAmount(report.totalExpense)) }}</strong></td>
-                  <td class="num" :class="netClass"><strong>{{ formatAmount(parseAmount(report.netDifference)) }}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="footnote">
-              Data dari transaksi kas masuk (status terkonfirmasi, tidak dihapus) dan kas keluar (aktif, tidak dihapus)
-              untuk rentang {{ report.dateRange.startDate }} — {{ report.dateRange.endDate }}.
-            </p>
-          </section>
-        </template>
-
-        <div v-else-if="!loading && hasFetched && !errorMessage" class="hint">
-          Terapkan filter untuk menampilkan laporan.
+            <span class="card-lbl">Selisih</span>
+            <span class="card-val" :class="netClass">{{ formatAmount(parseAmount(report.netDifference)) }}</span>
+            <span class="card-hint" :class="isNetDeficit ? 'card-hint-out' : 'card-hint-net'">
+              {{ isNetDeficit ? 'Keuangan defisit' : 'Keuangan surplus' }}
+            </span>
+          </div>
         </div>
+
+        <!-- Table Card -->
+        <section class="table-card">
+          <div class="table-head">
+            <h2>Ringkasan per kategori</h2>
+            <span class="badge-count">{{ report.breakdown?.length ?? 0 }} baris</span>
+          </div>
+
+          <div v-if="isEmpty" class="empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="#d4d4d4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg>
+            <p class="empty-title">Tidak ada transaksi</p>
+            <p class="empty-sub">Coba ubah periode atau terapkan filter lain.</p>
+          </div>
+
+          <table v-else class="tbl">
+            <thead>
+              <tr>
+                <th>Kategori</th>
+                <th class="num">Total Pemasukan</th>
+                <th class="num">Total Pengeluaran</th>
+                <th class="num">Selisih</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, i) in report.breakdown" :key="i">
+                <td>
+                  <span class="dot" :class="row.rowType === 'INCOME' ? 'dot-in' : 'dot-out'" />
+                  {{ row.label }}
+                </td>
+                <td class="num val-in">{{ formatAmount(parseAmount(row.totalIncome)) }}</td>
+                <td class="num val-out">{{ formatAmount(parseAmount(row.totalExpense)) }}</td>
+                <td class="num" :class="parseAmount(row.netDifference) >= 0 ? 'val-in' : 'val-out'">
+                  {{ formatAmount(parseAmount(row.netDifference)) }}
+                </td>
+              </tr>
+              <tr class="total-row">
+                <td><strong>Total keseluruhan</strong></td>
+                <td class="num val-in"><strong>{{ formatAmount(parseAmount(report.totalIncome)) }}</strong></td>
+                <td class="num val-out"><strong>{{ formatAmount(parseAmount(report.totalExpense)) }}</strong></td>
+                <td class="num" :class="netClass"><strong>{{ formatAmount(parseAmount(report.netDifference)) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="footnote">
+            Data dari transaksi kas masuk (status terkonfirmasi, tidak dihapus) dan kas keluar (aktif, tidak dihapus)
+            untuk rentang {{ report.dateRange.startDate }} — {{ report.dateRange.endDate }}.
+          </p>
+        </section>
+      </template>
+
+      <div v-else-if="!loading && hasFetched && !errorMessage" class="hint">
+        Terapkan filter untuk menampilkan laporan.
       </div>
     </main>
   </div>
 </template>
 
 <style scoped>
-.layout { display: flex; min-height: 100vh; background: #f5f6f7; font-family: 'Manrope', system-ui, sans-serif; }
-.main { flex: 1; overflow-y: auto; }
-.content { max-width: 1040px; margin: 0 auto; padding: 36px 28px 48px; }
+/* ───────── Layout ───────── */
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
 
-.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
-.page-title { font-family: 'Poppins', sans-serif; font-size: 28px; font-weight: 600; color: #111827; letter-spacing: -0.02em; }
-.page-sub { margin-top: 6px; font-size: 0.9rem; color: #6b7280; max-width: 560px; line-height: 1.5; }
+.content {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 32px;
+}
 
+.content > * {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ───────── Header ───────── */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #171717;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #525252;
+  font-size: 14px;
+}
+
+/* ───────── Export button ───────── */
 .btn-export {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 42px; padding: 0 16px; border-radius: 10px;
-  border: 1.5px solid #00C6AC; background: #fff; color: #00a88f;
-  font-weight: 600; font-size: 0.875rem; cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: 1.5px solid #00c6ac;
+  background: #fff;
+  color: #00a88f;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
 }
 .btn-export:hover:not(:disabled) { background: #f0fdfb; }
 .btn-export:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ───────── Filter Card ───────── */
 .filter-card {
-  background: #fff; border-radius: 14px; padding: 18px 20px 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
 }
-.filter-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.06em; color: #6b7280; margin-bottom: 14px; }
-.filter-grid { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end; }
-.field { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
-.field-actions { margin-left: auto; }
-.field-category { position: relative; min-width: 240px; }
-.lbl { font-size: 0.78rem; font-weight: 600; color: #374151; }
 
-.active-filters {
-  margin-top: 16px;
+.filter-head {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #525252;
 }
 
-.active-label {
-  font-size: 0.72rem;
-  color: #9ca3af;
-  margin-right: 2px;
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: end;
 }
 
-.active-chip {
-  height: 24px;
-  border: 1.5px solid #bfeae2;
-  background: #eaf9f6;
-  color: #17a995;
-  border-radius: 999px;
-  padding: 0 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.74rem;
-  font-weight: 500;
-  cursor: pointer;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.chip-close {
-  font-size: 0.82rem;
-  line-height: 1;
+.field-category { position: relative; }
+
+.lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: #525252;
+  font-family: 'Manrope', system-ui, sans-serif;
 }
 
+/* Segmented control */
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 .seg-btn {
-  height: 38px; padding: 0 14px; border-radius: 10px; border: 1.5px solid #e5e7eb;
-  background: #fafafa; font-family: inherit; font-size: 0.82rem; font-weight: 600; color: #4b5563; cursor: pointer;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #d4d4d4;
+  background: #fff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #525252;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.seg-btn.on { background: #00C6AC; border-color: #00C6AC; color: #fff; }
+.seg-btn.on {
+  background: #00c6ac;
+  border-color: #00c6ac;
+  color: #fff;
+}
 
+/* Inputs & selects */
 .inp {
-  height: 40px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #e5e7eb;
-  background: #fafafa; font-family: inherit; font-size: 0.875rem; min-width: 160px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d4d4d4;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #171717;
+  font-family: 'Manrope', system-ui, sans-serif;
+  background-color: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
-.inp:focus { outline: none; border-color: #00C6AC; background: #fff; }
+.inp:focus {
+  border-color: #00c6ac;
+  box-shadow: 0 0 0 1px #00c6ac;
+}
 
+/* Category dropdown */
 .category-trigger {
   display: flex;
   align-items: center;
@@ -617,9 +696,9 @@ async function exportExcel() {
   max-height: 260px;
   overflow-y: auto;
   background: #fff;
-  border: 1.5px solid #e5e7eb;
+  border: 1px solid #e5e5e5;
   border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
   padding: 8px;
 }
 
@@ -629,81 +708,167 @@ async function exportExcel() {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
+  font-size: 14px;
+  color: #171717;
+  cursor: pointer;
 }
-
-.cat-item:hover {
-  background: #f9fafb;
-}
-
+.cat-item:hover { background: #f5f5f5; }
 .cat-item input[type='checkbox'] {
   width: 16px;
   height: 16px;
-  accent-color: #00C6AC;
+  accent-color: #00c6ac;
 }
 
-.btn-primary {
-  height: 40px; padding: 0 20px; border-radius: 10px; border: none; background: #00C6AC; color: #fff;
-  font-weight: 600; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
-  box-shadow: 0 4px 12px rgba(0,198,172,0.25);
+/* Filter bottom row */
+.filter-bottom {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.action-row { display: flex; align-items: center; gap: 8px; }
-
-.btn-reset {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 10px;
-  border: 1.5px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-  font-weight: 600;
-  font-size: 0.875rem;
+/* Active chips */
+.active-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: 1;
+}
+.active-label {
+  font-size: 12px;
+  color: #a1a1a1;
+  margin-right: 2px;
+}
+.active-chip {
+  height: 24px;
+  border: 1.5px solid #bfeae2;
+  background: #eaf9f6;
+  color: #17a995;
+  border-radius: 999px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
-.btn-reset:hover:not(:disabled) { background: #f9fafb; }
-.btn-reset:disabled { opacity: 0.6; cursor: not-allowed; }
+.chip-close { font-size: 13px; line-height: 1; }
+
+/* Buttons */
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 0 16px;
+  height: 40px;
+  border: 1px solid #d4d4d4;
+  background-color: #ffffff;
+  color: #525252;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+.secondary-btn:hover:not(:disabled) { background-color: #f5f5f5; }
+.secondary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 0 20px;
+  height: 40px;
+  border: none;
+  background-color: #00c6ac;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Manrope', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+.primary-btn:hover:not(:disabled) { background-color: #00b39c; }
+.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .spin {
-  width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
-  border-radius: 50%; animation: sp 0.7s linear infinite;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: sp 0.7s linear infinite;
 }
 @keyframes sp { to { transform: rotate(360deg); } }
 
-.alert { border-radius: 12px; padding: 12px 16px; font-size: 0.875rem; margin-bottom: 16px; }
+/* ───────── Alert ───────── */
+.alert { border-radius: 12px; padding: 12px 16px; font-size: 14px; margin-bottom: 16px; }
 .alert-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
 
+/* ───────── Period chip ───────── */
 .period-chip {
-  display: inline-block; padding: 6px 14px; border-radius: 999px; background: #d0f0ea; color: #006B5A;
-  font-size: 0.78rem; font-weight: 600; margin-bottom: 14px;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #d0f0ea;
+  color: #006b5a;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 14px;
 }
 
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+/* ───────── Summary Cards ───────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
 @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } }
 
 .card {
   position: relative;
-  background: #fff; border-radius: 14px; padding: 18px 18px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #f0f0f0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
 }
-.card-lbl { font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; }
-.card-val { display: block; margin-top: 8px; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+
+.card-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-val {
+  display: block;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
 .card-hint {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   margin-top: 14px;
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 600;
   border-radius: 999px;
   padding: 4px 10px;
+  width: fit-content;
 }
-.val-in { color: #059669; }
-.val-out { color: #dc2626; }
-.net-pos { color: #059669; }
-.net-neg { color: #dc2626; }
-.net-neutral { color: #374151; }
 
 .card-icon {
   position: absolute;
@@ -716,32 +881,107 @@ async function exportExcel() {
   align-items: center;
   justify-content: center;
 }
-.icon-in { background: #ecfdf5; color: #10b981; }
+.icon-in  { background: #ecfdf5; color: #10b981; }
 .icon-out { background: #fef2f2; color: #ef4444; }
-.icon-net { background: #ecfdf5; color: #22c55e; }
 
-.card-hint-in { background: #ecfdf5; color: #059669; }
+.val-in  { color: #059669; }
+.val-out { color: #dc2626; }
+.net-pos { color: #059669; }
+.net-neg { color: #dc2626; }
+.net-neutral { color: #374151; }
+
+.card-hint-in  { background: #ecfdf5; color: #059669; }
 .card-hint-out { background: #fef2f2; color: #dc2626; }
 .card-hint-net { background: #ecfdf5; color: #059669; }
 
-.table-card { background: #fff; border-radius: 14px; padding: 18px 0 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-.table-head { display: flex; align-items: center; justify-content: space-between; padding: 0 20px 12px; border-bottom: 1px solid #f0f0f0; }
-.table-head h2 { font-size: 1rem; font-weight: 700; color: #111827; }
-.badge-count { font-size: 0.75rem; font-weight: 600; color: #6b7280; background: #f3f4f6; padding: 4px 10px; border-radius: 8px; }
+/* ───────── Table Card ───────── */
+.table-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
 
-.tbl { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.tbl th { text-align: left; padding: 12px 20px; color: #6b7280; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #fafafa; }
-.tbl td { padding: 14px 20px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e5e5;
+}
+.table-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #171717;
+  margin: 0;
+}
+.badge-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #525252;
+  background: #f5f5f5;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl thead { background-color: #fafafa; }
+.tbl th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: #525252;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e5e5e5;
+}
+.tbl td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
+  vertical-align: middle;
+}
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl tbody tr:hover { background-color: #f0fdfb; transition: background-color 0.1s; }
 .total-row td { background: #fafafa; border-bottom: none; }
+
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-.dot-in { background: #10b981; }
+.dot-in  { background: #10b981; }
 .dot-out { background: #f97316; }
 
-.empty { padding: 48px 24px; text-align: center; color: #6b7280; }
-.empty-sub { margin-top: 8px; font-size: 0.85rem; color: #9ca3af; }
+/* Empty state */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px;
+  gap: 8px;
+}
+.empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #525252;
+}
+.empty-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #a1a1a1;
+}
 
-.footnote { padding: 12px 20px 18px; font-size: 0.72rem; color: #9ca3af; line-height: 1.5; }
+.footnote {
+  padding: 12px 16px 16px;
+  font-size: 12px;
+  color: #a1a1a1;
+  line-height: 1.5;
+}
 
-.hint { text-align: center; padding: 40px; color: #9ca3af; font-size: 0.9rem; }
+.hint {
+  text-align: center;
+  padding: 40px;
+  color: #a1a1a1;
+  font-size: 14px;
+}
 </style>
