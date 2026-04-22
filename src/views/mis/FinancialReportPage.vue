@@ -5,6 +5,7 @@ import ExcelJS from 'exceljs'
 import { toast } from 'vue-sonner'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import type { FinancialReportCategoryOption, FinancialReportData } from '@/interfaces/financial-report.interface'
+import { FINANCIAL_REPORT_CATEGORY_OPTIONS } from '@/constants/financial-report-categories'
 import { getAuthToken } from '@/lib/auth'
 
 const period = ref<'monthly' | 'quarterly' | 'yearly'>('monthly')
@@ -29,25 +30,8 @@ const monthNames = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ]
 
-const fallbackCategoryOptions: FinancialReportCategoryOption[] = [
-  { id: 'DONASI', label: 'Donasi' },
-  { id: 'ZAKAT', label: 'Zakat' },
-  { id: 'INFAQ', label: 'Infaq' },
-  { id: 'OPERASIONAL', label: 'Operasional' },
-  { id: 'KONSUMSI', label: 'Konsumsi' },
-  { id: 'TRANSPORTASI', label: 'Transportasi' },
-  { id: 'PERLENGKAPAN', label: 'Perlengkapan' },
-  { id: 'PROGRAM_KEGIATAN', label: 'Program kegiatan' },
-  { id: 'GAJI', label: 'Gaji' },
-  { id: 'INFRASTRUKTUR', label: 'Infrastruktur' },
-  { id: 'LAIN_LAIN', label: 'Lain-lain' },
-]
-
-const categoryOptions = computed<FinancialReportCategoryOption[]>(() => {
-  return report.value?.availableCategories?.length
-    ? report.value.availableCategories
-    : fallbackCategoryOptions
-})
+/** Sumber tunggal: sama dengan enum BE + label laporan masuk/keluar (bukan dari response agar tidak berubah saat refresh/error). */
+const categoryOptions = computed<FinancialReportCategoryOption[]>(() => FINANCIAL_REPORT_CATEGORY_OPTIONS)
 
 const selectedCategoryText = computed(() => {
   if (selectedCategoryIds.value.length === 0) return 'Semua kategori'
@@ -125,6 +109,12 @@ function resetFilters() {
   selectedCategoryIds.value = []
   showCategoryMenu.value = false
   errorMessage.value = null
+  pruneInvalidCategorySelections()
+}
+
+function pruneInvalidCategorySelections() {
+  const allowed = new Set(FINANCIAL_REPORT_CATEGORY_OPTIONS.map((o) => o.id))
+  selectedCategoryIds.value = selectedCategoryIds.value.filter((id) => allowed.has(id))
 }
 
 async function fetchReport() {
@@ -138,6 +128,7 @@ async function fetchReport() {
     errorMessage.value = 'Sesi login tidak ditemukan. Silakan login ulang.'
     return
   }
+  pruneInvalidCategorySelections()
   const params: Record<string, string | number> = {
     period: period.value,
     year: year.value,
