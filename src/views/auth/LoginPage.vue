@@ -11,6 +11,7 @@ function getHomeRouteByRole(role?: string | null): string {
   if (r === 'ADMIN') return '/users'
   if (r === 'PENGURUS') return '/income-transactions'
   if (r === 'KETUA YAYASAN') return '/payment-requests'
+  if (r === 'DONATUR') return '/activities'
   return '/payment-requests'
 }
 
