@@ -8,6 +8,7 @@ function getHomeRouteByRole(role?: string | null) {
   if (r === "ADMIN") return "/users"
   if (r === "PENGURUS") return "/income-transactions"
   if (r === "KETUA YAYASAN") return "/payment-requests"
+  if (r === "DONATUR") return "/activities"
 
   return "/payment-requests"
 }
@@ -135,7 +136,7 @@ const router = createRouter({
       path: "/activities/create",
       name: "activity-create",
       component: () => import("@/views/activity/ActivityForm.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresActivityWrite: true },
     },
     {
       path: "/activities/:id",
@@ -147,7 +148,7 @@ const router = createRouter({
       path: "/activities/:id/edit",
       name: "activity-edit",
       component: () => import("@/views/activity/ActivityForm.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresActivityWrite: true },
     },
     {
       path: "/financial-report",
@@ -204,6 +205,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresInventoryAccess && !(isPengurus() || isKetua())) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresActivityWrite && !(isPengurus() || isAdmin())) {
     return getHomeRouteByRole(user?.role)
   }
 

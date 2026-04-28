@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activity.store'
 import { getCurrentUser } from '@/lib/auth'
+import { isAdmin, isPengurus } from '@/lib/rbac'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import DeleteActivityModal from '@/components/DeleteActivityModal.vue'
 import type { ActivityResponse, AttachmentResponse, ReplyResponse } from '@/interfaces/activity.interface'
@@ -43,6 +44,7 @@ const deletingReplyId = ref<string | null>(null)
 const deletingReply = ref(false)
 
 const currentUser = computed(() => getCurrentUser())
+const canManageActivity = computed(() => isAdmin() || isPengurus())
 const canWriteReply = computed(() => {
   const role = currentUser.value?.role?.toUpperCase()
   return role === 'DONATUR' || role === 'PENGURUS'
@@ -379,6 +381,7 @@ async function loadData() {
 }
 
 async function handleDeleteConfirm() {
+  if (!canManageActivity.value) return
   if (!activity.value) return
   try {
     await store.deleteActivity(activity.value.id)
@@ -445,7 +448,7 @@ onUnmounted(() => {
         <!-- Page Header -->
         <div class="page-header">
           <h1 class="page-title">Detail Postingan</h1>
-          <div class="header-actions">
+          <div v-if="canManageActivity" class="header-actions">
             <button class="btn-edit" @click="router.push(`/activities/${id}/edit`)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -785,6 +788,7 @@ onUnmounted(() => {
 
     <!-- Delete Modal -->
     <DeleteActivityModal
+      v-if="canManageActivity"
       :isOpen="showDelete"
       :title="activity?.title ?? ''"
       :category="activity?.category ?? ''"
