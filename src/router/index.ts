@@ -18,11 +18,8 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      redirect: () => {
-        const user = getCurrentUser()
-        if (!user) return "/auth/login"
-        return getHomeRouteByRole(user.role)
-      },
+      name: "landing",
+      component: () => import("@/views/landing/LandingPage.vue"),
     },
     {
       path: "/auth/login",

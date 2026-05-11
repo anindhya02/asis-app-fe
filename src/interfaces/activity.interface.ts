@@ -58,6 +58,7 @@ export interface ActivityResponse {
   createdByUsername: string
   createdAt: string
   updatedAt: string
+  imageUrl?: string | null
 }
 
 export interface CreateActivityRequest {
