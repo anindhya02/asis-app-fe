@@ -52,6 +52,11 @@ export function canViewFinancialReport(): boolean {
   return isPengurus() || isKetua();
 }
 
+/** Pengurus atau Ketua Yayasan — akses dashboard operasional */
+export function canViewOperationalDashboard(): boolean {
+  return isPengurus() || isKetua();
+}
+
 export function isDonatur(): boolean {
   const user = getCurrentUser();
   return user?.role?.toUpperCase() === UserRole.DONATUR;
