@@ -164,7 +164,7 @@ function cancelLogout() {
               <polyline points="3.29 7 12 12 20.71 7" />
               <line x1="12" y1="22" x2="12" y2="12" />
             </svg>
-            <span>Inventory</span>
+            <span>Inventory Donasi</span>
           </button>
         </template>
 
@@ -263,7 +263,7 @@ function cancelLogout() {
               <polyline points="3.29 7 12 12 20.71 7" />
               <line x1="12" y1="22" x2="12" y2="12" />
             </svg>
-            <span>Inventory</span>
+            <span>Inventory Donasi</span>
           </button>
         </template>
       </nav>
