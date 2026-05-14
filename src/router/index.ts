@@ -183,6 +183,12 @@ const router = createRouter({
       component: () => import("@/views/inventory/InventoryDetail.vue"),
       meta: { requiresAuth: true, requiresInventoryAccess: true },
     },
+    {
+      path: "/inventory/:id/usage",
+      name: "inventory-usage",
+      component: () => import("@/views/inventory/InventoryUsage.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
   ],
 })
 
