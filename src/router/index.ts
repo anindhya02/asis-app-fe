@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
-import { isAdmin, isKetua, isPengurus, canViewFinancialReport } from "@/lib/rbac"
+import { isAdmin, isKetua, isPengurus, canViewFinancialReport, canViewOperationalDashboard } from "@/lib/rbac"
 
 function getHomeRouteByRole(role?: string | null) {
   const r = (role || "").toUpperCase()
@@ -66,6 +66,12 @@ const router = createRouter({
     {
       path: "/payment-requests",
       name: "payment-request-list",
+      component: () => import("@/views/ticket/PaymentRequestList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/pengajuandana",
+      name: "payment-request-list-alias",
       component: () => import("@/views/ticket/PaymentRequestList.vue"),
       meta: { requiresAuth: true },
     },
@@ -154,6 +160,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresFinancialReport: true },
     },
     {
+      path: "/operational-dashboard",
+      name: "operational-dashboard",
+      component: () => import("@/views/mis/OperationalDashboardPage.vue"),
+      meta: { requiresAuth: true, requiresOperationalDashboard: true },
+    },
+    {
       path: "/inventory",
       name: "inventory-list",
       component: () => import("@/views/inventory/InventoryList.vue"),
@@ -169,6 +181,12 @@ const router = createRouter({
       path: "/inventory/:id",
       name: "inventory-detail",
       component: () => import("@/views/inventory/InventoryDetail.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
+    {
+      path: "/inventory/:id/usage",
+      name: "inventory-usage",
+      component: () => import("@/views/inventory/InventoryUsage.vue"),
       meta: { requiresAuth: true, requiresInventoryAccess: true },
     },
   ],
@@ -198,6 +216,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresFinancialReport && !canViewFinancialReport()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresOperationalDashboard && !canViewOperationalDashboard()) {
     return getHomeRouteByRole(user?.role)
   }
 

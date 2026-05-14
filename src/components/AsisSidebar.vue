@@ -120,7 +120,12 @@ function cancelLogout() {
             <span>Postingan Kegiatan</span>
           </button>
 
-          <button type="button" class="nav-item nav-item--disabled">
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/operational-dashboard') }"
+            @click="go('/operational-dashboard')"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="9" />
@@ -159,7 +164,7 @@ function cancelLogout() {
               <polyline points="3.29 7 12 12 20.71 7" />
               <line x1="12" y1="22" x2="12" y2="12" />
             </svg>
-            <span>Inventory</span>
+            <span>Inventory Donasi</span>
           </button>
         </template>
 
@@ -258,7 +263,7 @@ function cancelLogout() {
               <polyline points="3.29 7 12 12 20.71 7" />
               <line x1="12" y1="22" x2="12" y2="12" />
             </svg>
-            <span>Inventory</span>
+            <span>Inventory Donasi</span>
           </button>
         </template>
       </nav>

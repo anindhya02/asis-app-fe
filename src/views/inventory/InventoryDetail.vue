@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { useRoute, useRouter } from 'vue-router'
-import { toast } from 'vue-sonner'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import { useInventoryStore } from '@/stores/inventory.store'
+import type { InventoryUsageLogEntry } from '@/interfaces/inventory.interface'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,7 +20,6 @@ const id = computed(() => {
 const item = computed(() => store.currentItem)
 const isLoading = computed(() => store.loading)
 const notFound = ref(false)
-const showDeleteConfirm = ref(false)
 const showImagePreview = ref(false)
 
 function formatNumber(value?: string | number | null) {
@@ -33,6 +32,14 @@ function formatNumber(value?: string | number | null) {
 function formatDate(value?: string) {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('id-ID')
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return '-'
+  return new Date(value).toLocaleString('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
 }
 
 function formatCategory(value?: string) {
@@ -64,21 +71,75 @@ const breakdownTotal = computed(() => {
   return item.value.breakdownsList.reduce((sum, row) => sum + Number(row.amount || 0), 0)
 })
 
+const usageLogCount = computed(() => item.value?.usageLogs?.length ?? 0)
+
+const usageLogsSorted = computed(() => {
+  const logs = item.value?.usageLogs
+  if (!logs?.length) return []
+  return [...logs].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+})
+
+/** Tag sub-item dari teks audit: "Nama: 12" per baris / titik koma / koma dalam satu baris. */
+function usageTagsFromAudit(auditMessage?: string | null) {
+  if (!auditMessage?.trim()) return [] as { label: string; value: string }[]
+  const tags: { label: string; value: string }[] = []
+  const pushPair = (label: string, value: string) => {
+    const L = label.trim()
+    const V = value.trim()
+    if (L && V) tags.push({ label: L, value: V })
+  }
+  const lines = auditMessage.split(/[\n;]+/).map((s) => s.trim()).filter(Boolean)
+  for (const line of lines) {
+    const single = line.match(/^(.+?):\s*([\d.,]+)\s*$/)
+    if (single?.[1] != null && single[2] != null) {
+      pushPair(single[1], single[2])
+      continue
+    }
+    if (line.includes(',') && line.includes(':')) {
+      for (const part of line.split(',')) {
+        const m = part.trim().match(/^(.+?):\s*([\d.,]+)\s*$/)
+        if (m?.[1] != null && m[2] != null) pushPair(m[1], m[2])
+      }
+    }
+  }
+  return tags
+}
+
+function usageSubitemTags(log: InventoryUsageLogEntry) {
+  const bu = log.breakdownUsages
+  if (bu?.length) {
+    return bu.map((b) => ({
+      label: b.name,
+      value: formatNumber(b.amount ?? ''),
+    }))
+  }
+  return usageTagsFromAudit(log.auditMessage).map((t) => ({
+    label: t.label,
+    value: formatNumber(t.value),
+  }))
+}
+
+const usageLogBundles = computed(() =>
+  usageLogsSorted.value.map((log) => ({
+    log,
+    tags: usageSubitemTags(log),
+  })),
+)
+
+function formatUnitLabel(unit?: string | null) {
+  if (!unit) return ''
+  return String(unit).replace(/_/g, ' ').toLowerCase()
+}
+
 function goBack() {
   router.push('/inventory')
 }
 
-function onEdit() {
-  toast.info('Fitur Edit akan tersedia pada PBI-49')
-}
-
-function onDelete() {
-  showDeleteConfirm.value = true
-}
-
-function confirmDelete() {
-  showDeleteConfirm.value = false
-  toast.info('Fitur Hapus akan tersedia pada PBI-50')
+function goUsage() {
+  if (!id.value) return
+  router.push(`/inventory/${id.value}/usage`)
 }
 
 function downloadPhoto() {
@@ -108,6 +169,10 @@ async function loadDetail() {
 }
 
 void loadDetail()
+
+watch(id, () => {
+  void loadDetail()
+})
 </script>
 
 <template>
@@ -136,21 +201,15 @@ void loadDetail()
               </svg>
               Kembali
             </button>
-            <button type="button" class="btn-header btn-fill" @click="onEdit">
+            <button type="button" class="btn-header btn-fill" @click="goUsage">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
               </svg>
-              Edit
-            </button>
-            <button type="button" class="btn-header btn-danger" @click="onDelete">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-              Hapus
+              Catat Pemakaian
             </button>
           </div>
         </div>
@@ -190,7 +249,7 @@ void loadDetail()
               </div>
               <div class="field">
                 <span class="label">Jenis Donasi</span>
-                <span class="value">-</span>
+                <span class="value">Donasi Langsung</span>
               </div>
               <div class="field">
                 <span class="label">Dicatat</span>
@@ -260,6 +319,81 @@ void loadDetail()
           <p class="note">{{ item.note || '-' }}</p>
         </section>
 
+        <section class="card card-usage">
+          <div class="usage-head">
+            <div class="usage-head-left">
+              <h2 class="usage-title">Riwayat Pemakaian</h2>
+              <span class="usage-count-pill">{{ usageLogCount }} catatan</span>
+            </div>
+            <button type="button" class="btn-usage-new" @click="goUsage">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+              Catat Pemakaian Baru
+            </button>
+          </div>
+
+          <ul v-if="usageLogBundles.length" class="usage-timeline">
+            <li v-for="{ log, tags } in usageLogBundles" :key="log.id" class="usage-timeline-item">
+              <div class="usage-node-col">
+                <span class="usage-node-line" aria-hidden="true" />
+                <span class="usage-node">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                    <rect x="9" y="3" width="6" height="4" rx="1" />
+                    <path d="M9 12h6" />
+                    <path d="M9 16h6" />
+                  </svg>
+                </span>
+              </div>
+              <article class="usage-card">
+                <p class="usage-lead">
+                  <span class="usage-actor">{{ log.createdByUsername || 'Pengguna' }}</span>
+                  memakai sebanyak
+                  <template v-if="tags.length">
+                    <template v-for="(tag, idx) in tags" :key="`${log.id}-seg-${idx}`">
+                      <template v-if="idx > 0">, </template>
+                      <span class="usage-qty">{{ tag.value }}</span>
+                      <span class="usage-unit"> {{ formatUnitLabel(item.unit) }} </span>
+                      <span class="usage-subname">{{ tag.label }}</span>
+                    </template>
+                  </template>
+                  <template v-else>
+                    <span class="usage-qty">{{ formatNumber(log.quantityUsed) }}</span>
+                    <span class="usage-unit"> {{ formatUnitLabel(item.unit) }} </span>
+                  </template>
+                  dengan tujuan pemakaian
+                  <span class="usage-purpose">"{{ log.usagePurpose }}"</span>.
+                </p>
+                <div class="usage-meta">
+                  <span class="usage-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    {{ formatDateTime(log.createdAt) }}
+                  </span>
+                  <span class="usage-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    {{ log.createdByUsername || '—' }}
+                  </span>
+                </div>
+              </article>
+            </li>
+          </ul>
+          <p v-else class="usage-empty">Belum ada riwayat pemakaian untuk item ini.</p>
+        </section>
+
         <div class="footer-actions">
           <button type="button" class="btn-footer" @click="goBack">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -285,17 +419,6 @@ void loadDetail()
         <p>Data item inventory dengan ID tersebut tidak tersedia dalam sistem.</p>
         <button type="button" class="btn-fill btn-empty-back" @click="goBack">Kembali ke Daftar</button>
       </section>
-
-      <div v-if="showDeleteConfirm" class="overlay" @click.self="showDeleteConfirm = false">
-        <div class="modal">
-          <h3>Konfirmasi Hapus</h3>
-          <p>Fitur hapus item inventory akan tersedia pada PBI-50.</p>
-          <div class="modal-actions">
-            <button type="button" class="btn-modal" @click="showDeleteConfirm = false">Batal</button>
-            <button type="button" class="btn-modal btn-modal-danger" @click="confirmDelete">Lanjut</button>
-          </div>
-        </div>
-      </div>
 
       <div v-if="showImagePreview && item?.photoUrl" class="overlay" @click.self="showImagePreview = false">
         <div class="image-modal">
@@ -353,7 +476,6 @@ th { font-size: 13px; color: #737373; text-transform: uppercase; }
 .btn-header { height: 36px; border-radius: 8px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .btn-outline { border: 1px solid #00c6ac; color: #00c6ac; background: #fff; }
 .btn-fill { border: 1px solid #00c6ac; color: #fff; background: #00c6ac; }
-.btn-danger { border: 1px solid #ef4444; color: #ef4444; background: #fff; }
 .btn-footer { height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #d4d4d4; background: #fff; color: #525252; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .footer-actions { margin-top: 4px; }
 .card-empty { text-align: center; padding: 42px 20px; }
@@ -362,12 +484,175 @@ th { font-size: 13px; color: #737373; text-transform: uppercase; }
 .empty-icon { width: 72px; height: 72px; border-radius: 999px; background: #fff8e1; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
 .btn-empty-back { height: 42px; padding: 0 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; }
 .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.38); display: flex; align-items: center; justify-content: center; z-index: 1300; padding: 16px; }
-.modal { width: min(440px, 100%); background: #fff; border-radius: 10px; padding: 24px; border: 1px solid #e5e5e5; box-shadow: 0 20px 40px rgba(0,0,0,.15); }
-.modal h3 { margin: 0 0 8px; font-family: 'Poppins', system-ui, sans-serif; }
-.modal p { margin: 0 0 14px; color: #525252; font-size: 14px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.btn-modal { height: 44px; padding: 0 14px; border: 2px solid #e5e5e5; background: #fff; border-radius: 8px; font-weight: 700; cursor: pointer; min-width: 110px; }
-.btn-modal-danger { border-color: #ff303e; color: #ff303e; }
+.card-usage { padding-top: 18px; }
+.usage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.usage-head-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.usage-title {
+  margin: 0;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #171717;
+}
+.usage-count-pill {
+  font-size: 12px;
+  font-weight: 700;
+  color: #00a896;
+  background: #e6faf7;
+  padding: 4px 11px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+.btn-usage-new {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #00c6ac;
+  background: #fff;
+  color: #00c6ac;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-usage-new:hover {
+  background: #e6faf7;
+  color: #00a896;
+  border-color: #00a896;
+}
+.usage-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.usage-timeline-item {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 16px;
+  position: relative;
+  padding-bottom: 22px;
+}
+.usage-timeline-item:last-child {
+  padding-bottom: 0;
+}
+.usage-node-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.usage-node-line {
+  position: absolute;
+  left: 50%;
+  top: 36px;
+  bottom: -22px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #c8ebe4;
+  border-radius: 1px;
+}
+.usage-timeline-item:last-child .usage-node-line {
+  display: none;
+}
+.usage-node {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #00c6ac;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+  box-shadow: 0 0 0 4px #fff;
+}
+.usage-card {
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.usage-lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #404040;
+}
+.usage-actor {
+  font-weight: 700;
+  color: #171717;
+}
+.usage-qty {
+  font-weight: 700;
+  color: #00c6ac;
+}
+.usage-unit {
+  font-weight: 600;
+  color: #525252;
+}
+.usage-subname {
+  font-weight: 700;
+  color: #171717;
+}
+.usage-lead .usage-qty {
+  margin-right: 0.3em;
+}
+.usage-lead .usage-unit {
+  margin-right: 0.35em;
+}
+.usage-purpose {
+  font-weight: 600;
+  color: #171717;
+}
+.usage-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 22px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+.usage-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #a1a1a1;
+  font-weight: 600;
+}
+.usage-meta-item svg {
+  flex-shrink: 0;
+  color: #c4c4c4;
+}
+.usage-empty {
+  margin: 0;
+  font-size: 14px;
+  color: #737373;
+  line-height: 1.5;
+}
 .image-modal { position: relative; width: min(920px, 100%); max-height: 90vh; }
 .image-close { position: absolute; top: -14px; right: -14px; border: none; background: #fff; border-radius: 999px; width: 36px; height: 36px; cursor: pointer; font-size: 18px; line-height: 1; box-shadow: 0 6px 14px rgba(0,0,0,.25); }
 .image-full { width: 100%; max-height: calc(90vh - 20px); object-fit: contain; border-radius: 10px; display: block; }
