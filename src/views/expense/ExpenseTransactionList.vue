@@ -13,6 +13,8 @@ import {
 } from '@/views/expense/ExpenseTransactionCreate.vue'
 
 const isAuthorized = computed(() => !isDonatur())
+/** Hanya Pengurus yang boleh POST transaksi pengeluaran (Ketua tidak). */
+const canCreateExpense = computed(() => isPengurus())
 const canDeleteExpense = computed(() => isKetua())
 const currentUser = computed(() => getCurrentUser())
 const showDeleteModal = ref(false)
@@ -226,7 +228,12 @@ onMounted(() => {
             </svg>
             Reset
           </button>
-          <button type="button" class="primary-btn" @click="() => router.push('/expense-transactions/create')">
+          <button
+            v-if="canCreateExpense"
+            type="button"
+            class="primary-btn"
+            @click="() => router.push('/expense-transactions/create')"
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -271,8 +278,19 @@ onMounted(() => {
                       </svg>
                     </div>
                     <p class="empty-title">Belum ada transaksi pengeluaran</p>
-                    <p class="empty-sub">Tambahkan pengeluaran untuk mulai mencatat penggunaan dana.</p>
-                    <button type="button" class="primary-btn mt-btn" @click="router.push('/expense-transactions/create')">
+                    <p class="empty-sub">
+                      {{
+                        canCreateExpense
+                          ? 'Tambahkan pengeluaran untuk mulai mencatat penggunaan dana.'
+                          : 'Belum ada data transaksi pengeluaran.'
+                      }}
+                    </p>
+                    <button
+                      v-if="canCreateExpense"
+                      type="button"
+                      class="primary-btn mt-btn"
+                      @click="router.push('/expense-transactions/create')"
+                    >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
