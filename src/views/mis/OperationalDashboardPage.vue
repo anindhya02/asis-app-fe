@@ -91,17 +91,29 @@ const balanceTone = computed(() => {
   return 'neutral'
 })
 
-const maxFund = computed(() => {
-  return Math.max(totalFundIn.value, totalFundOut.value, 1)
+const chartStep = 500000
+const chartHeight = 320
+
+const chartMaxValue = computed(() => {
+  const maxValue = Math.max(totalFundIn.value, totalFundOut.value, 0)
+  if (maxValue <= 0) return chartStep
+  return Math.ceil(maxValue / chartStep) * chartStep
 })
 
 const chartTicks = computed(() => {
-  const base = maxFund.value
   return [1, 0.75, 0.5, 0.25].map((ratio) => ({
     ratio,
-    value: base * ratio,
+    value: chartMaxValue.value * ratio,
+    offset: (1 - ratio) * chartHeight,
   }))
 })
+
+function getBarHeight(value: number): number {
+  const maxValue = chartMaxValue.value
+  if (maxValue <= 0) return 0
+  const safeValue = Math.max(0, Math.min(value, maxValue))
+  return (safeValue / maxValue) * chartHeight
+}
 
 async function fetchDashboard(options?: { silent?: boolean }) {
   errorMessage.value = null
@@ -254,15 +266,6 @@ onBeforeUnmount(() => {
                 </svg>
               </button>
             </div>
-
-            <div class="refresh-row">
-              <span class="last-updated">Terakhir diperbarui: {{ formatTime(lastUpdated) }}</span>
-              <label class="toggle">
-                <input v-model="autoRefresh" type="checkbox" />
-                <span class="toggle-ui" />
-                <span class="toggle-text">Auto-refresh</span>
-              </label>
-            </div>
           </div>
         </header>
 
@@ -395,28 +398,39 @@ onBeforeUnmount(() => {
 
                 <div class="cashflow">
                   <div class="cash-main">
-                    <div class="bar-chart">
-                      <div class="bar-grid">
-                        <div v-for="tick in chartTicks" :key="tick.ratio" class="bar-grid-line">
-                          <span class="bar-grid-label">{{ formatCurrency(tick.value) }}</span>
-                          <span class="bar-grid-rule" />
+                    <div class="bar-chart" :style="{ '--chart-height': `${chartHeight}px` }">
+                      <div class="bar-area">
+                        <div class="bar-grid">
+                          <div
+                            v-for="tick in chartTicks"
+                            :key="tick.ratio"
+                            class="bar-grid-line"
+                            :style="{ top: `${tick.offset}px` }"
+                          >
+                            <span class="bar-grid-label">{{ formatCurrency(tick.value) }}</span>
+                            <span class="bar-grid-rule" />
+                          </div>
+                        </div>
+                        <div class="bar-plot">
+                          <div class="bar-item">
+                            <div
+                              class="bar bar-in"
+                              :data-value="formatCurrency(totalFundIn)"
+                              :style="{ height: `${getBarHeight(totalFundIn)}px` }"
+                            />
+                          </div>
+                          <div class="bar-item">
+                            <div
+                              class="bar bar-out"
+                              :data-value="formatCurrency(totalFundOut)"
+                              :style="{ height: `${getBarHeight(totalFundOut)}px` }"
+                            />
+                          </div>
                         </div>
                       </div>
-                      <div class="bar-plot">
-                        <div class="bar-item">
-                          <div
-                            class="bar bar-in"
-                            :style="{ height: totalFundIn === 0 ? '8px' : Math.min(100, (totalFundIn / maxFund) * 100) + '%' }"
-                          />
-                          <span>Dana Masuk</span>
-                        </div>
-                        <div class="bar-item">
-                          <div
-                            class="bar bar-out"
-                            :style="{ height: totalFundOut === 0 ? '8px' : Math.min(100, (totalFundOut / maxFund) * 100) + '%' }"
-                          />
-                          <span>Dana Terserap</span>
-                        </div>
+                      <div class="bar-labels">
+                        <span>Dana Masuk</span>
+                        <span>Dana Terserap</span>
                       </div>
                     </div>
 
@@ -455,7 +469,6 @@ onBeforeUnmount(() => {
               <div class="card-header">
                 <div>
                   <h2>Ringkasan Status Ticket</h2>
-                  <p>Pantau pengajuan dana berdasarkan status prosesnya.</p>
                 </div>
               </div>
 
@@ -569,7 +582,7 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .page-title {
@@ -590,7 +603,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
 }
 
 .filter-row {
@@ -932,7 +944,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 8px;
   align-items: stretch;
 }
 
@@ -942,8 +954,8 @@ onBeforeUnmount(() => {
 }
 
 .status-column {
-  height: 100%;
   display: flex;
+  align-items: flex-center;
   flex-direction: column;
 }
 
@@ -1025,55 +1037,53 @@ onBeforeUnmount(() => {
 
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
-  flex: 1;
-  grid-auto-rows: 1fr;
 }
 
 .status-card {
   border-radius: 10px;
-  padding: 16px;
+  padding: 8px;
   border: 1px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0px;
   align-items: center;
   text-align: center;
 }
 
 .status-icon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.7);
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .status-count {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
 }
 
 .status-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .status-helper {
-  font-size: 11px;
+  font-size: 12px;
   color: #737373;
 }
 
 .status-link {
-  margin-top: 6px;
+  margin-top: 4px;
   border: none;
   background: transparent;
   color: #00a88f;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1122,26 +1132,32 @@ onBeforeUnmount(() => {
 }
 
 .bar-chart {
-  display: flex;
-  gap: 28px;
-  align-items: flex-end;
-  height: 200px;
-  padding: 0 12px 16px 12px;
+  display: grid;
+  gap: 10px;
   border-bottom: 1px solid #f1f5f9;
   position: relative;
   flex: 1;
+  --bar-column-min: 120px;
+  --chart-left: 96px;
+  --chart-right: 20px;
+}
+
+.bar-area {
+  position: relative;
+  height: var(--chart-height);
+  overflow: visible;
 }
 
 .bar-grid {
   position: absolute;
-  inset: 8px 0 28px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  inset: 0;
   pointer-events: none;
 }
 
 .bar-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1163,34 +1179,68 @@ onBeforeUnmount(() => {
 .bar-plot {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(var(--bar-column-min), 1fr));
+  align-items: end;
+  justify-items: center;
+  column-gap: 24px;
   height: 100%;
-  padding-left: 96px;
-  padding-right: 20px;
-  padding-bottom: 6px;
-  width: 100%;
-  justify-content: space-evenly;
+  width: calc(100% - var(--chart-left) - var(--chart-right));
+  margin-left: var(--chart-left);
+  margin-right: var(--chart-right);
 }
 
 .bar-item {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
-  gap: 8px;
-  font-size: 11px;
-  color: #737373;
-  height: 150px;
-  min-width: 120px;
+  height: 100%;
+  width: 100%;
+  min-width: var(--bar-column-min);
+  justify-content: center;
 }
 
 .bar {
   width: 40px;
   border-radius: 8px;
-  min-height: 8px;
   transition: height 0.3s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.bar::after {
+  content: attr(data-value);
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -8px);
+  background: #111827;
+  color: #ffffff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.bar::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translate(-50%, -2px);
+  border: 5px solid transparent;
+  border-top-color: #111827;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.bar:hover::after,
+.bar:hover::before {
+  opacity: 1;
 }
 
 .bar-in {
@@ -1201,9 +1251,27 @@ onBeforeUnmount(() => {
   background: #f87171;
 }
 
+.bar-labels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(var(--bar-column-min), 1fr));
+  align-items: center;
+  justify-items: center;
+  column-gap: 48px;
+  width: calc(100% - var(--chart-left) - var(--chart-right));
+  margin-left: var(--chart-left);
+  margin-right: var(--chart-right);
+  font-size: 11px;
+  color: #737373;
+}
+
+.bar-labels span {
+  text-align: center;
+  width: 100%;
+}
+
 .cash-legend {
   display: grid;
-  gap: 6px;
+  gap: 12px;
   font-size: 12px;
   color: #525252;
   height: 100%;
@@ -1235,7 +1303,7 @@ onBeforeUnmount(() => {
 .progress-bar {
   position: relative;
   flex: 1;
-  height: 6px;
+  height: 20px;
   border-radius: 999px;
   background: #e5e7eb;
   overflow: hidden;
@@ -1248,7 +1316,7 @@ onBeforeUnmount(() => {
 }
 
 .progress-text {
-  font-size: 12px;
+  font-size: 18 px;
   color: #737373;
   min-width: 36px;
   text-align: right;
