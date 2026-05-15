@@ -109,7 +109,7 @@ const router = createRouter({
       path: "/expense-transactions/create",
       name: "expense-transaction-create",
       component: () => import("@/views/expense/ExpenseTransactionCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/expense-transactions/:id",

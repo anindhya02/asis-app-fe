@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import AsisSidebar from '@/components/AsisSidebar.vue'
 import { useExpenseTransactionStore } from '@/stores/expense-transaction.store'
+import { getCurrentUser } from '@/lib/auth'
+import { isKetua, isPengurus } from '@/lib/rbac'
+import type { ExpenseTransaction } from '@/interfaces/expense-transaction.interface'
 import {
   EXPENSE_CATEGORY_FILTER_OPTIONS,
   expenseSubOptionsForMain,
@@ -89,6 +93,20 @@ const isFormValid = computed(() =>
 
 const isSubmitting = computed(() => store.loading)
 
+function isWithinEditWindow(createdAt: string | null | undefined): boolean {
+  if (!createdAt) return false
+  const createdAtDate = new Date(createdAt)
+  if (Number.isNaN(createdAtDate.getTime())) return false
+  return Date.now() - createdAtDate.getTime() <= 30 * 60 * 1000
+}
+
+function canPengurusEditTransaction(item: ExpenseTransaction): boolean {
+  const u = getCurrentUser()?.username
+  if (!u) return false
+  if ((item.createdByUsername || '').toLowerCase() !== u.toLowerCase()) return false
+  return isWithinEditWindow(item.createdAt)
+}
+
 async function handleSubmit() {
   if (!validateAll()) return
   const formData = new FormData()
@@ -111,11 +129,31 @@ onMounted(async () => {
   loadFailed.value = false
   try {
     await store.fetchExpenseTransactionById(id.value)
-    if (!store.currentItem) {
+    const item = store.currentItem
+    if (!item) {
       loadFailed.value = true
       return
     }
-    applyInitialData()
+
+    if (isKetua()) {
+      applyInitialData()
+      return
+    }
+
+    if (isPengurus()) {
+      if (!canPengurusEditTransaction(item)) {
+        toast.error(
+          'Anda tidak dapat mengubah transaksi ini (bukan pembuat transaksi atau batas waktu edit 30 menit sudah habis).',
+        )
+        await router.replace(`/expense-transactions/${id.value}`)
+        return
+      }
+      applyInitialData()
+      return
+    }
+
+    toast.error('Anda tidak memiliki akses untuk mengubah transaksi pengeluaran.')
+    await router.replace(`/expense-transactions/${id.value}`)
   } catch {
     loadFailed.value = true
   } finally {

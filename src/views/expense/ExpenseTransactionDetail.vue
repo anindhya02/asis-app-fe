@@ -80,7 +80,7 @@ const canEditExpense = computed(() => {
   if (!item) return false
   if (isKetua()) return true
   if (!isPengurus()) return false
-  if (item.createdByUsername !== currentUser.value?.username) return false
+  if ((item.createdByUsername || '').toLowerCase() !== (currentUser.value?.username || '').toLowerCase()) return false
   if (!item.createdAt) return false
   const createdAtDate = new Date(item.createdAt)
   if (Number.isNaN(createdAtDate.getTime())) return false
@@ -92,7 +92,7 @@ const editDisabledReason = computed(() => {
   if (!isPengurus()) return 'Anda tidak memiliki akses edit transaksi'
   const item = store.currentItem
   if (!item) return 'Data transaksi tidak tersedia'
-  if (item.createdByUsername !== currentUser.value?.username) {
+  if ((item.createdByUsername || '').toLowerCase() !== (currentUser.value?.username || '').toLowerCase()) {
     return 'Pengurus hanya dapat mengubah transaksi milik sendiri'
   }
   if (!canEditExpense.value) {
