@@ -76,6 +76,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/pengajuandana",
+      name: "payment-request-list-alias",
+      component: () => import("@/views/ticket/PaymentRequestList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/payment-requests/:id/edit",
       name: "payment-request-edit",
       component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
@@ -166,12 +172,6 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresOperationalDashboard: true },
     },
     {
-      path: "/executive-financial",
-      name: "executive-financial-dashboard",
-      component: () => import("@/views/eis/ExecutiveFinancialDashboardPage.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
       path: "/inventory",
       name: "inventory-list",
       component: () => import("@/views/inventory/InventoryList.vue"),
@@ -222,6 +222,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresFinancialReport && !canViewFinancialReport()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresOperationalDashboard && !canViewOperationalDashboard()) {
     return getHomeRouteByRole(user?.role)
   }
 
