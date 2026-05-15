@@ -61,7 +61,7 @@ const router = createRouter({
       path: "/payment-requests/create",
       name: "payment-request-create",
       component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/payment-requests",
@@ -79,7 +79,7 @@ const router = createRouter({
       path: "/payment-requests/:id/edit",
       name: "payment-request-edit",
       component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/payment-requests/:id",
