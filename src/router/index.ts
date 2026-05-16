@@ -195,6 +195,12 @@ const router = createRouter({
       component: () => import("@/views/inventory/InventoryUsage.vue"),
       meta: { requiresAuth: true, requiresInventoryAccess: true },
     },
+    {
+      path: "/executive-financial",
+      name: "executive-financial-dashboard",
+      component: () => import("@/views/eis/ExecutiveFinancialDashboardPage.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
