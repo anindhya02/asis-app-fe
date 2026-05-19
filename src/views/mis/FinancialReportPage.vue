@@ -60,6 +60,8 @@ const isEmpty = computed(() => {
   )
 })
 
+const canExport = computed(() => !!report.value && !isEmpty.value)
+
 function formatRp(n: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 }
@@ -168,6 +170,10 @@ async function fetchReport() {
 async function exportExcel() {
   if (!report.value) {
     toast.error('Belum ada data laporan untuk diekspor')
+    return
+  }
+  if (isEmpty.value) {
+    toast.error('Tidak ada transaksi pada periode ini untuk diekspor')
     return
   }
   const r = report.value
@@ -305,7 +311,13 @@ async function exportExcel() {
             Ringkasan pemasukan dan pengeluaran dari transaksi kas masuk dan kas keluar per periode.
           </p>
         </div>
-        <button type="button" class="btn-export" :disabled="!report" @click="exportExcel">
+        <button
+          type="button"
+          class="btn-export"
+          :disabled="!canExport"
+          :title="report && isEmpty ? 'Tidak ada transaksi untuk diekspor' : undefined"
+          @click="exportExcel"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
