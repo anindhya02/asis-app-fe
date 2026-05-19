@@ -52,6 +52,11 @@ export function canViewFinancialReport(): boolean {
   return isPengurus() || isKetua();
 }
 
+/** Ketua Yayasan atau Admin — audit log aktivitas sistem */
+export function canViewAuditLog(): boolean {
+  return isKetua() || isAdmin();
+}
+
 /** Pengurus atau Ketua Yayasan — akses dashboard operasional */
 export function canViewOperationalDashboard(): boolean {
   return isPengurus() || isKetua();

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router"
 import { getCurrentUser } from "@/lib/auth"
-import { isAdmin, isKetua, isPengurus, canViewFinancialReport, canViewOperationalDashboard } from "@/lib/rbac"
+import { isAdmin, isKetua, isPengurus, canViewFinancialReport, canViewOperationalDashboard, canViewAuditLog } from "@/lib/rbac"
 
 function getHomeRouteByRole(role?: string | null) {
   const r = (role || "").toUpperCase()
@@ -166,6 +166,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresFinancialReport: true },
     },
     {
+      path: "/audit-log",
+      name: "audit-log",
+      component: () => import("@/views/mis/AuditLogPage.vue"),
+      meta: { requiresAuth: true, requiresAuditLog: true },
+    },
+    {
       path: "/operational-dashboard",
       name: "operational-dashboard",
       component: () => import("@/views/mis/OperationalDashboardPage.vue"),
@@ -232,6 +238,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresOperationalDashboard && !canViewOperationalDashboard()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresAuditLog && !canViewAuditLog()) {
     return getHomeRouteByRole(user?.role)
   }
 
