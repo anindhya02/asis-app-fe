@@ -24,9 +24,10 @@ export function formatDiffValueForTableCell(value: string | undefined | null, ma
     return seg.length > maxLen ? `${seg.slice(0, maxLen)}…` : seg
   })
   if (!formatted.length) return ''
-  if (formatted.length === 1) return formatted[0]
+  const first = formatted[0] ?? ''
+  if (formatted.length === 1) return first
   const suffix = segments.some((s) => isHttpUrl(s)) ? 'foto' : 'item'
-  return `${formatted[0]} (+${formatted.length - 1} ${suffix})`
+  return `${first} (+${formatted.length - 1} ${suffix})`
 }
 
 export function summarizeDiffsForTableCell(

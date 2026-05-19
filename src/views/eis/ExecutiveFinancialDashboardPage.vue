@@ -80,7 +80,7 @@ function shortChartAxisLabel(periodKey: string | undefined, fullLabel: string): 
   const pk = (periodKey ?? '').trim()
   const ym = /^(\d{4})-(\d{2})$/.exec(pk)
   if (ym) {
-    const mi = parseInt(ym[2], 10) - 1
+    const mi = parseInt(ym[2] ?? '1', 10) - 1
     if (mi >= 0 && mi < 12) return `${MONTH_SHORT_ID[mi]} ${ym[1]}`
   }
   const yq = /^(\d{4})-Q([1-4])$/i.exec(pk)

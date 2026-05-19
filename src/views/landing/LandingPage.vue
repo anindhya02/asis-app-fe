@@ -126,7 +126,7 @@ const formatMonthYear = (value?: string | null) => {
 
 const mapActivities = (items: ActivityResponse[]) =>
   items.map((item, index) => {
-    const fallback = fallbackActivities[index % fallbackActivities.length]
+    const fallback = fallbackActivities[index % fallbackActivities.length] ?? fallbackActivities[0]!
     return {
       image: item.imageUrl || fallback.image,
       title: item.title || fallback.title,
