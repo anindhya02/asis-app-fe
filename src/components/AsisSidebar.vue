@@ -186,6 +186,22 @@ function cancelLogout() {
           <span>User Management</span>
         </button>
 
+        <button
+          v-if="isAdmin"
+          type="button"
+          class="nav-item"
+          :class="{ 'nav-item--active': isActive('/audit-log') }"
+          @click="go('/audit-log')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="M9 12h6M9 16h4" />
+          </svg>
+          <span>Audit Log</span>
+        </button>
+
         <!-- Menu untuk Ketua Yayasan -->
         <template v-if="isKetua">
           <button
@@ -249,6 +265,21 @@ function cancelLogout() {
               <line x1="9" y1="16" x2="13" y2="16" />
             </svg>
             <span>Laporan Keuangan Periodik</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/audit-log') }"
+            @click="go('/audit-log')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="M9 12h6M9 16h4" />
+            </svg>
+            <span>Audit Log</span>
           </button>
 
           <button
