@@ -185,7 +185,10 @@ async function handleSubmit() {
     }
 
     if (isEditing.value && id.value) {
-      const result = await store.updateActivity(id.value, payload)
+      const result = await store.updateActivity(id.value, {
+        ...payload,
+        deferAudit: uploadedFiles.value.length > 0,
+      })
       activityId = result.id
 
       // Delete removed attachments
@@ -193,7 +196,10 @@ async function handleSubmit() {
         await store.deleteAttachment(activityId, attId)
       }
     } else {
-      const result = await store.createActivity(payload)
+      const result = await store.createActivity({
+        ...payload,
+        deferAudit: uploadedFiles.value.length > 0,
+      })
       activityId = result.id
     }
 

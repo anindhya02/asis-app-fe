@@ -268,6 +268,11 @@ async function exportExcel() {
       } else {
         c.fill = undefined as any
       }
+      c.alignment = {
+        vertical: 'middle',
+        horizontal: col === 'A' ? 'left' : 'left',
+        wrapText: true,
+      }
       c.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
     }
   }

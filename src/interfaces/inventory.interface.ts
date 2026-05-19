@@ -22,6 +22,24 @@ export interface InventoryBreakdownRow {
   amountDisplay?: string
 }
 
+/** Per sub-item saat pemakaian (jika dikirim API). */
+export interface InventoryUsageLogBreakdown {
+  breakdownId?: string
+  name: string
+  amount?: string | number | null
+}
+
+export interface InventoryUsageLogEntry {
+  id: string
+  quantityUsed: string
+  usagePurpose: string
+  auditMessage: string
+  /** Rincian jumlah per sub-item; prioritas tampil di riwayat dibanding parse teks audit. */
+  breakdownUsages?: InventoryUsageLogBreakdown[]
+  createdByUsername?: string | null
+  createdAt: string
+}
+
 export interface InventoryItem {
   id: string
   itemName: string
@@ -33,6 +51,21 @@ export interface InventoryItem {
   breakdownsList: { id?: string; name: string; amount: string }[]
   note?: string | null
   createdAt?: string
+  createdByUsername?: string | null
+  usageLogs?: InventoryUsageLogEntry[]
+}
+
+export interface RecordInventoryUsageResponse {
+  usage: {
+    id: string
+    quantityUsed: string
+    usagePurpose: string
+    auditMessage: string
+    breakdownUsages?: InventoryUsageLogBreakdown[]
+    createdByUsername?: string | null
+    createdAt: string
+  }
+  item: InventoryItem
 }
 
 export interface InventoryItemListResponse {

@@ -5,6 +5,7 @@ import type { CommonResponseInterface } from '@/interfaces/common.response.inter
 import type {
   InventoryItem,
   InventoryItemListResponse,
+  RecordInventoryUsageResponse,
 } from '@/interfaces/inventory.interface'
 import { getAuthToken, handleAuthError } from '@/lib/auth'
 import router from '@/router'
@@ -136,6 +137,49 @@ export const useInventoryStore = defineStore('inventory', {
 
         this.error = message
         toast.error(message)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async recordInventoryUsage(
+      id: string,
+      payload: { usagePurpose: string; breakdownsList: { breakdownId: string; amount: number }[] },
+    ) {
+      this.loading = true
+      this.error = null
+
+      const token = getAuthToken()
+
+      try {
+        const response = await axios.post<CommonResponseInterface<RecordInventoryUsageResponse>>(
+          `${baseInventoryUrl}/${id}/usage`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        )
+
+        const data = response.data.data
+        if (data?.item) {
+          this.currentItem = data.item
+        }
+
+        return data
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response) {
+          await handleAuthError(error.response.status, router, error.response.data?.message)
+        }
+
+        const message =
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          (error instanceof Error ? error.message : 'Unknown error')
+
+        this.error = message
         throw error
       } finally {
         this.loading = false
