@@ -61,7 +61,7 @@ const router = createRouter({
       path: "/payment-requests/create",
       name: "payment-request-create",
       component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/payment-requests",
@@ -76,10 +76,16 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/pengajuandana",
+      name: "payment-request-list-alias",
+      component: () => import("@/views/ticket/PaymentRequestList.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/payment-requests/:id/edit",
       name: "payment-request-edit",
       component: () => import("@/views/ticket/PaymentRequestCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/payment-requests/:id",
@@ -109,7 +115,7 @@ const router = createRouter({
       path: "/expense-transactions/create",
       name: "expense-transaction-create",
       component: () => import("@/views/expense/ExpenseTransactionCreate.vue"),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresPengurus: true },
     },
     {
       path: "/expense-transactions/:id",
@@ -189,6 +195,18 @@ const router = createRouter({
       component: () => import("@/views/inventory/InventoryDetail.vue"),
       meta: { requiresAuth: true, requiresInventoryAccess: true },
     },
+    {
+      path: "/inventory/:id/usage",
+      name: "inventory-usage",
+      component: () => import("@/views/inventory/InventoryUsage.vue"),
+      meta: { requiresAuth: true, requiresInventoryAccess: true },
+    },
+    {
+      path: "/executive-financial",
+      name: "executive-financial-dashboard",
+      component: () => import("@/views/eis/ExecutiveFinancialDashboardPage.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
@@ -224,6 +242,10 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresAuditLog && !canViewAuditLog()) {
+    return getHomeRouteByRole(user?.role)
+  }
+
+  if (to.meta.requiresOperationalDashboard && !canViewOperationalDashboard()) {
     return getHomeRouteByRole(user?.role)
   }
 

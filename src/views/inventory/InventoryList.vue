@@ -56,6 +56,10 @@ function goDetail(id: string) {
   router.push(`/inventory/${id}`)
 }
 
+function goUsage(id: string) {
+  router.push(`/inventory/${id}/usage`)
+}
+
 async function load(pageValue = 0) {
   page.value = pageValue
   try {
@@ -156,17 +160,8 @@ void load(0)
                 <td class="cell-muted">{{ page * limit + index + 1 }}</td>
                 <td>
                   <div class="name-cell">
-                    <div class="thumb">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                        <polyline points="3.29 7 12 12 20.71 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="cell-strong">{{ row.itemName }}</p>
-                      <p class="subtext">Donasi Barang</p>
-                    </div>
+                    <p class="cell-strong">{{ row.itemName }}</p>
+                    <p class="subtext">Donasi Barang</p>
                   </div>
                 </td>
                 <td>
@@ -174,30 +169,34 @@ void load(0)
                     {{ formatCategory(row.category) }}
                   </span>
                 </td>
-                <td>{{ row.quantity }} {{ row.unit }}</td>
+                <td class="cell-qty">
+                  <span class="qty-num">{{ row.quantity }}</span>
+                  <span class="qty-unit">{{ row.unit }}</span>
+                </td>
                 <td>{{ row.donorSource }}</td>
                 <td>
                   <div class="actions">
                     <button type="button" class="icon-btn" title="Detail" @click="goDetail(row.id)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
                     </button>
-                    <button type="button" class="icon-btn" disabled title="Endpoint edit inventory belum tersedia">
+                    <button
+                      type="button"
+                      class="btn-catat"
+                      title="Catat pemakaian"
+                      @click="goUsage(row.id)"
+                    >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                        <rect x="9" y="3" width="6" height="4" rx="1" />
+                        <path d="M9 12h6" />
+                        <path d="M9 16h6" />
                       </svg>
-                    </button>
-                    <button type="button" class="icon-btn" disabled title="Endpoint hapus inventory belum tersedia">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
+                      Catat
                     </button>
                   </div>
                 </td>
@@ -313,18 +312,20 @@ void load(0)
 }
 
 .toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 12px 16px;
   margin-bottom: 18px;
+  min-width: 0;
 }
 
 .search-wrap {
   position: relative;
-  width: 100%;
+  flex: 1 1 0;
   min-width: 0;
   max-width: 1090px;
+  overflow: hidden;
 }
 
 .search-icon {
@@ -333,16 +334,20 @@ void load(0)
   top: 50%;
   transform: translateY(-50%);
   color: #a3a3a3;
+  pointer-events: none;
 }
 
 .search-input {
+  display: block;
   height: 44px;
   border-radius: 8px;
   border: 2px solid #e5e5e5;
   padding: 0 14px 0 30px;
   font-size: 14px;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -383,27 +388,30 @@ th {
 }
 
 .col-action {
-  width: 140px;
+  min-width: 168px;
+  width: 1%;
   text-align: center;
+  white-space: nowrap;
+}
+
+.cell-qty {
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.qty-num {
+  font-weight: 700;
+  color: #171717;
+}
+
+.qty-unit {
+  font-size: 13px;
+  color: #737373;
+  margin-left: 6px;
 }
 
 .name-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.thumb {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  border: 1px solid #ececec;
-  background: #f9fafb;
-  color: #b3b3b3;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .subtext {
@@ -459,33 +467,74 @@ th {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
+/* Selaras dengan tombol aksi di Daftar Transaksi Kas Keluar */
 .icon-btn {
-  width: 34px;
-  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
   border: none;
-  background: transparent;
-  color: #737373;
+  background: none;
+  border-radius: 6px;
+  color: #a1a1a1;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 }
 
-.icon-btn:hover:not(:disabled) {
-  color: #00c6ac;
-  background: #e6faf7;
+.icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.icon-btn:disabled {
-  color: #a3a3a3;
-  background: transparent;
+.icon-btn:hover:not(:disabled) {
+  background-color: #e6faf7;
+  color: #00c6ac;
+}
+
+.icon-btn:disabled:hover {
+  background: none;
+  color: #a1a1a1;
+}
+
+.btn-catat {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid #e5e5e5;
+  background: none;
+  color: #a1a1a1;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn-catat:hover:not(:disabled) {
+  background-color: #e6faf7;
+  border-color: #00c6ac;
+  color: #00c6ac;
+}
+
+.btn-catat:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
-  opacity: 0.6;
+}
+
+.btn-catat:disabled:hover {
+  background: none;
+  border-color: #e5e5e5;
+  color: #a1a1a1;
 }
 
 .empty {
@@ -565,7 +614,13 @@ th {
 
 @media (max-width: 900px) {
   .toolbar {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrap {
+    flex: 1 1 auto;
+    max-width: none;
   }
 
   .btn-primary {

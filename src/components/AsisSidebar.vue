@@ -89,6 +89,21 @@ function cancelLogout() {
           <button
             type="button"
             class="nav-item"
+            :class="{ 'nav-item--active': isActive('/inventory') }"
+            @click="go('/inventory')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z" />
+              <polyline points="3.29 7 12 12 20.71 7" />
+              <line x1="12" y1="22" x2="12" y2="12" />
+            </svg>
+            <span>Inventory Donasi</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
             :class="{ 'nav-item--active': isActive('/payment-requests') }"
             @click="go('/payment-requests')"
           >
@@ -150,21 +165,6 @@ function cancelLogout() {
               <line x1="9" y1="16" x2="13" y2="16" />
             </svg>
             <span>Laporan Keuangan Periodik</span>
-          </button>
-
-          <button
-            type="button"
-            class="nav-item"
-            :class="{ 'nav-item--active': isActive('/inventory') }"
-            @click="go('/inventory')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z" />
-              <polyline points="3.29 7 12 12 20.71 7" />
-              <line x1="12" y1="22" x2="12" y2="12" />
-            </svg>
-            <span>Inventory</span>
           </button>
         </template>
 
@@ -237,6 +237,21 @@ function cancelLogout() {
           <button
             type="button"
             class="nav-item"
+            :class="{ 'nav-item--active': isActive('/inventory') }"
+            @click="go('/inventory')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z" />
+              <polyline points="3.29 7 12 12 20.71 7" />
+              <line x1="12" y1="22" x2="12" y2="12" />
+            </svg>
+            <span>Inventory Donasi</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
             :class="{ 'nav-item--active': isActive('/payment-requests') }"
             @click="go('/payment-requests')"
           >
@@ -249,6 +264,22 @@ function cancelLogout() {
               <polyline points="10 9 9 9 8 9" />
             </svg>
             <span>Pengajuan Dana</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/operational-dashboard') }"
+            @click="go('/operational-dashboard')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="9" />
+              <rect x="14" y="3" width="7" height="5" />
+              <rect x="14" y="12" width="7" height="9" />
+              <rect x="3" y="16" width="7" height="5" />
+            </svg>
+            <span>Dashboard Operasional</span>
           </button>
 
           <button
@@ -295,6 +326,21 @@ function cancelLogout() {
               <line x1="12" y1="22" x2="12" y2="12" />
             </svg>
             <span>Inventory</span>
+          </button>
+
+          <button
+            type="button"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive('/executive-financial') }"
+            @click="go('/executive-financial')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="M7 16l4-4 4 4 6-6" />
+              <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+            <span>Dashboard Finansial Eksekutif</span>
           </button>
         </template>
       </nav>
