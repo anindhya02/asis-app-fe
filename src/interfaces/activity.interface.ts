@@ -68,6 +68,8 @@ export interface CreateActivityRequest {
   startDate: string
   endDate: string | null
   description: string
+  /** Tunda audit CREATE sampai foto diunggah (supaya URL foto ikut tercatat). */
+  deferAudit?: boolean
 }
 
 export interface UpdateActivityRequest {
@@ -77,6 +79,7 @@ export interface UpdateActivityRequest {
   startDate: string
   endDate: string | null
   description: string
+  deferAudit?: boolean
 }
 
 export interface ReplyResponse {

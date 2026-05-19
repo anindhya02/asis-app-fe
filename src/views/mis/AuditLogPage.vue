@@ -7,6 +7,7 @@ import type { AuditLogPage, AuditLogRow } from '@/interfaces/audit-log.interface
 import { AUDIT_ACTION_FILTER_OPTIONS, AUDIT_MODULE_FILTER_OPTIONS } from '@/constants/audit-log-options'
 import {
   computeAuditFieldDiffs,
+  humanActivityDescription,
   summarizeDiffForCell,
   targetSummaryFromAuditJson,
 } from '@/lib/audit-diff'
@@ -34,6 +35,8 @@ import {
   getUserAuditDisplayMode,
   isUserManagementModule,
 } from '@/lib/audit-user'
+import { getInventoryAuditDisplayMode, isInventoryItemModule } from '@/lib/audit-inventory'
+import { auditLinkLines } from '@/lib/audit-proof-link'
 
 const loading = ref(false)
 const errorMessage = ref<string | null>(null)
@@ -44,7 +47,6 @@ const filterFrom = ref('')
 const filterTo = ref('')
 const filterAction = ref('')
 const filterModule = ref('')
-const filterUser = ref('')
 
 const page = ref(0)
 const pageSize = 10
@@ -77,6 +79,7 @@ function actionDotClass(action: string): string {
   if (a === 'REJECT') return 'dot-reject'
   if (a === 'REVIEW') return 'dot-review'
   if (a === 'CANCEL') return 'dot-cancel'
+  if (a === 'SUBMIT') return 'dot-submit'
   return 'dot-default'
 }
 
@@ -86,6 +89,7 @@ function getModuleDisplayMode(moduleCode: string, actionType: string): string {
   if (isExpenseTransactionModule(moduleCode)) return getExpenseAuditDisplayMode(actionType)
   if (isPaymentRequestModule(moduleCode)) return getPaymentRequestAuditDisplayMode(actionType)
   if (isActivityModule(moduleCode)) return getActivityAuditDisplayMode(actionType)
+  if (isInventoryItemModule(moduleCode)) return getInventoryAuditDisplayMode(actionType)
   return 'default'
 }
 
@@ -190,8 +194,26 @@ const detailTargetLabel = computed(() => {
   )
 })
 
-function hasAuditImage(d: { oldImageUrl?: string | null; newImageUrl?: string | null }): boolean {
-  return Boolean(d.oldImageUrl || d.newImageUrl)
+const detailActivityDesc = computed(() => {
+  if (!detailRow.value) return ''
+  return humanActivityDescription(
+    detailRow.value.actionType,
+    detailRow.value.moduleLabel || detailRow.value.moduleCode || '',
+    detailTargetLabel.value,
+  )
+})
+
+function summaryChipActionClass(actionType: string): string {
+  const a = (actionType || '').toUpperCase()
+  if (a === 'CREATE') return 'summary-chip--create'
+  if (a === 'UPDATE') return 'summary-chip--update'
+  if (a === 'DELETE') return 'summary-chip--delete'
+  if (a === 'APPROVE') return 'summary-chip--approve'
+  if (a === 'REJECT') return 'summary-chip--reject'
+  if (a === 'REVIEW') return 'summary-chip--review'
+  if (a === 'CANCEL') return 'summary-chip--cancel'
+  if (a === 'SUBMIT') return 'summary-chip--submit'
+  return 'summary-chip--default'
 }
 
 function diffRowClass(kind: string): string {
@@ -239,7 +261,6 @@ async function fetchLogs() {
   if (filterTo.value) params.to = filterTo.value
   if (filterAction.value) params.actionType = filterAction.value
   if (filterModule.value) params.module = filterModule.value
-  if (filterUser.value.trim()) params.user = filterUser.value.trim()
 
   try {
     const res = await axios.get<{ status: string; message: string; data: AuditLogPage }>(
@@ -278,7 +299,6 @@ function resetFilters() {
   filterTo.value = ''
   filterAction.value = ''
   filterModule.value = ''
-  filterUser.value = ''
   page.value = 0
   fetchLogs()
 }
@@ -320,9 +340,10 @@ onMounted(() => {
         </span>
       </div>
 
-      <section class="filter-card">
-        <div class="filter-head">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <section class="card filter-card">
+        <div class="filter-title">
+          <svg class="filter-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16" /><path d="M6 12h12" /><path d="M10 20h4" />
           </svg>
           <span>Filter Aktivitas</span>
@@ -330,37 +351,28 @@ onMounted(() => {
 
         <div class="filter-grid">
           <div class="field">
-            <label class="lbl">Dari Tanggal</label>
-            <input v-model="filterFrom" type="date" class="inp" />
+            <label>Dari Tanggal</label>
+            <input v-model="filterFrom" type="date" />
           </div>
           <div class="field">
-            <label class="lbl">Hingga Tanggal</label>
-            <input v-model="filterTo" type="date" class="inp" />
+            <label>Hingga Tanggal</label>
+            <input v-model="filterTo" type="date" />
           </div>
           <div class="field">
-            <label class="lbl">Jenis Aksi</label>
-            <select v-model="filterAction" class="inp">
+            <label>Jenis Aksi</label>
+            <select v-model="filterAction">
               <option v-for="opt in actionOptions" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
             </select>
           </div>
           <div class="field">
-            <label class="lbl">Fitur / Modul</label>
-            <select v-model="filterModule" class="inp">
+            <label>Fitur / Modul</label>
+            <select v-model="filterModule">
               <option v-for="opt in moduleOptions" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
             </select>
           </div>
-          <div class="field field-wide">
-            <label class="lbl">Pengguna</label>
-            <div class="search-wrap">
-              <svg class="search-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input v-model="filterUser" type="search" class="inp inp-search" placeholder="Cari nama pengguna..." />
-            </div>
-          </div>
         </div>
 
-        <div class="filter-actions">
+        <div class="filter-bottom filter-bottom--end">
           <button type="button" class="secondary-btn" :disabled="loading" @click="resetFilters">Reset Filter</button>
           <button type="button" class="primary-btn" :disabled="loading" @click="applyFilters">
             <span v-if="loading" class="spin" />
@@ -471,143 +483,196 @@ onMounted(() => {
 
     <Teleport to="body">
       <div v-if="detailOpen && detailRow" class="modal-backdrop" @click.self="closeDetail">
-        <div class="modal-panel modal-panel--detail" role="dialog" aria-modal="true">
-          <div class="modal-head modal-head--detail">
+        <div class="modal-panel modal-panel--detail" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title">
+          <header class="modal-head modal-head--detail">
             <div>
-              <h2 class="modal-title">Detail Aktivitas</h2>
+              <h2 id="audit-detail-title" class="modal-title">Detail Aktivitas</h2>
               <p class="modal-id">ID: {{ detailShortId }}</p>
             </div>
             <button type="button" class="modal-close" aria-label="Tutup" @click="closeDetail">×</button>
-          </div>
+          </header>
 
           <div class="detail-summary">
-            <span class="action-pill action-pill--lg">
+            <span class="summary-chip" :class="summaryChipActionClass(detailRow.actionType)">
               <span class="dot" :class="actionDotClass(detailRow.actionType)" />
               {{ formatActionLabel(detailRow.actionType, detailRow.moduleCode) }}
             </span>
-            <span class="module-pill module-pill--lg">{{ detailRow.moduleLabel || detailRow.moduleCode }}</span>
-            <span class="detail-summary-meta">{{ formatDateTime(detailRow.occurredAt) }}</span>
-            <span class="detail-summary-meta">{{ detailRow.actorNama || detailRow.actorUsername || '—' }}</span>
-            <span v-if="detailRow.actorRole" class="role-badge">{{ detailRow.actorRole }}</span>
+            <span class="summary-chip summary-chip--module">{{ detailRow.moduleLabel || detailRow.moduleCode }}</span>
+            <span class="summary-chip summary-chip--meta">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+              </svg>
+              {{ formatDateTime(detailRow.occurredAt) }}
+            </span>
+            <span class="summary-chip summary-chip--meta">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+              </svg>
+              {{ detailRow.actorNama || detailRow.actorUsername || '—' }}
+            </span>
+            <span v-if="detailRow.actorRole" class="summary-chip summary-chip--role">{{ detailRow.actorRole }}</span>
           </div>
 
           <div class="modal-body-scroll">
             <section class="detail-section">
-              <h3 class="detail-section-title">Informasi aktivitas</h3>
-              <div class="detail-info-grid">
-                <div>
-                  <span class="info-lbl">Tanggal / waktu</span>
-                  <p class="info-val">{{ formatDateTime(detailRow.occurredAt) }}</p>
+              <h3 class="detail-section-title">Informasi Aktivitas</h3>
+              <div class="detail-info-panel">
+                <div class="detail-info-grid">
+                  <div class="info-cell">
+                    <span class="info-lbl">Tanggal / Waktu</span>
+                    <p class="info-val">{{ formatDateTime(detailRow.occurredAt) }}</p>
+                  </div>
+                  <div class="info-cell">
+                    <span class="info-lbl">Jenis Aksi</span>
+                    <p class="info-val">
+                      <span class="inline-action-pill">
+                        <span class="dot" :class="actionDotClass(detailRow.actionType)" />
+                        {{ formatActionLabel(detailRow.actionType, detailRow.moduleCode) }}
+                      </span>
+                    </p>
+                  </div>
+                  <div class="info-cell">
+                    <span class="info-lbl">Fitur / Modul</span>
+                    <p class="info-val">
+                      <span class="inline-module-pill">{{ detailRow.moduleLabel || detailRow.moduleCode }}</span>
+                    </p>
+                  </div>
+                  <div class="info-cell">
+                    <span class="info-lbl">Target Data</span>
+                    <p class="info-val info-val--strong">{{ detailTargetLabel }}</p>
+                  </div>
+                  <div class="info-cell">
+                    <span class="info-lbl">Dilakukan Oleh</span>
+                    <p class="info-val">{{ detailRow.actorNama || detailRow.actorUsername || '—' }}</p>
+                  </div>
+                  <div class="info-cell">
+                    <span class="info-lbl">Role Pengguna</span>
+                    <p class="info-val">
+                      <span v-if="detailRow.actorRole" class="inline-role-badge">{{ detailRow.actorRole }}</span>
+                      <span v-else>—</span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <span class="info-lbl">Jenis aksi</span>
-                  <p class="info-val">
-                    <span class="action-pill">
-                      <span class="dot" :class="actionDotClass(detailRow.actionType)" />
-                      {{ formatActionLabel(detailRow.actionType, detailRow.moduleCode) }}
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <span class="info-lbl">Fitur / modul</span>
-                  <p class="info-val"><span class="module-pill">{{ detailRow.moduleLabel }}</span></p>
-                </div>
-                <div>
-                  <span class="info-lbl">Target data</span>
-                  <p class="info-val">{{ detailTargetLabel }}</p>
-                </div>
-                <div>
-                  <span class="info-lbl">Dilakukan oleh</span>
-                  <p class="info-val">{{ detailRow.actorNama || detailRow.actorUsername || '—' }}</p>
-                </div>
-                <div>
-                  <span class="info-lbl">Role pengguna</span>
-                  <p class="info-val"><span v-if="detailRow.actorRole" class="role-badge">{{ detailRow.actorRole }}</span></p>
-                </div>
+                <p v-if="detailActivityDesc" class="detail-desc-box">{{ detailActivityDesc }}</p>
               </div>
             </section>
 
             <section class="detail-section">
-              <h3 class="detail-section-title">Perubahan data</h3>
+              <h3 class="detail-section-title">Perubahan Data</h3>
 
-              <div v-if="detailIsSingleInfoCard" class="user-deactivate-card">
-                <p class="user-deactivate-title">{{ detailSingleCardTitle }}</p>
+              <div
+                v-if="detailIsSingleInfoCard"
+                class="detail-event-card"
+                :class="{ 'detail-event-card--delete': detailIsDeleteCard }"
+              >
+                <p class="detail-event-card__title">{{ detailSingleCardTitle }}</p>
                 <div
                   v-for="d in detailDiffs"
                   :key="d.path"
-                  class="user-deactivate-row"
+                  class="detail-event-card__row"
                 >
                   <span class="diff-field-lbl">{{ d.label }}</span>
-                  <template v-if="hasAuditImage(d)">
-                    <div class="audit-photo-pair">
-                      <img v-if="d.oldImageUrl" :src="d.oldImageUrl" alt="Foto lama" class="audit-photo-preview" />
-                      <img v-if="d.newImageUrl" :src="d.newImageUrl" alt="Foto baru" class="audit-photo-preview" />
+                  <div class="detail-event-card__value">
+                    <div
+                      v-if="auditLinkLines(d.newDisplay || d.oldDisplay).length"
+                      class="audit-proof-links"
+                    >
+                      <a
+                        v-for="(url, linkIdx) in auditLinkLines(d.newDisplay || d.oldDisplay)"
+                        :key="`ev-link-${linkIdx}`"
+                        :href="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="audit-proof-link"
+                        @click.stop
+                      >{{ url }}</a>
                     </div>
-                  </template>
-                  <span v-else class="diff-field-val diff-field-val--multiline">{{ d.newDisplay || d.oldDisplay }}</span>
+                    <span v-else class="diff-field-val diff-field-val--multiline">{{ d.newDisplay || d.oldDisplay }}</span>
+                  </div>
                 </div>
               </div>
 
               <template v-else>
-              <div v-if="detailDisplayMode !== 'create'" class="diff-legend">
-                <span class="legend-item"><span class="legend-swatch legend-swatch--changed" /> Diubah</span>
-                <span class="legend-item"><span class="legend-swatch legend-swatch--added" /> Ditambahkan</span>
-                <span class="legend-item"><span class="legend-swatch legend-swatch--removed" /> Dihapus</span>
-              </div>
+                <div v-if="detailDiffs.length === 0" class="diff-empty">
+                  Tidak ada field yang berubah untuk ditampilkan, atau format data tidak dapat dibandingkan.
+                </div>
 
-              <div v-if="detailDiffs.length === 0" class="diff-empty">
-                Tidak ada field yang berubah untuk ditampilkan, atau format data tidak dapat dibandingkan.
-              </div>
-
-              <div
-                v-else
-                class="diff-compare"
-                :class="{ 'diff-compare--create-only': detailDisplayMode === 'create' }"
-              >
                 <div
-                  class="diff-card diff-card--old"
-                  :class="{ 'diff-card--empty': detailDisplayMode === 'create' }"
+                  v-else
+                  class="diff-compare"
+                  :class="{ 'diff-compare--create-only': detailDisplayMode === 'create' }"
                 >
-                  <div class="diff-card-head">Nilai lama</div>
-                  <div v-if="detailDisplayMode === 'create'" class="diff-card-empty-body" />
-                  <template v-else>
                   <div
-                    v-for="d in detailDiffs"
-                    :key="`o-${d.path}`"
-                    class="diff-field"
-                    :class="diffRowClass(d.kind)"
+                    class="diff-card diff-card--old"
+                    :class="{ 'diff-card--empty': detailDisplayMode === 'create' }"
                   >
-                    <span class="diff-field-lbl">{{ d.label }}</span>
-                    <div v-if="hasAuditImage(d) && d.oldImageUrl" class="diff-field-val">
-                      <img :src="d.oldImageUrl" alt="Foto lama" class="audit-photo-preview" />
+                    <div class="diff-card-head">Nilai Lama</div>
+                    <div v-if="detailDisplayMode === 'create'" class="diff-card-empty-body">
+                      <span class="diff-card-empty-hint">Tidak ada nilai sebelumnya</span>
                     </div>
-                    <div v-else-if="d.path === 'photoChanged'" class="diff-field-val">—</div>
-                    <div v-else class="diff-field-val">{{ d.oldDisplay }}</div>
+                    <template v-else>
+                      <div
+                        v-for="d in detailDiffs"
+                        :key="`o-${d.path}`"
+                        class="diff-field"
+                        :class="diffRowClass(d.kind)"
+                      >
+                        <span class="diff-field-lbl">{{ d.label }}</span>
+                        <div
+                          v-if="auditLinkLines(d.oldDisplay).length"
+                          class="audit-proof-links diff-field-val"
+                        >
+                          <a
+                            v-for="(url, linkIdx) in auditLinkLines(d.oldDisplay)"
+                            :key="`old-link-${linkIdx}`"
+                            :href="url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="audit-proof-link"
+                            @click.stop
+                          >{{ url }}</a>
+                        </div>
+                        <div v-else class="diff-field-val diff-field-val--old">{{ d.oldDisplay || '—' }}</div>
+                      </div>
+                    </template>
                   </div>
-                  </template>
-                </div>
-                <div v-if="detailDisplayMode !== 'create' && !detailIsSingleInfoCard" class="diff-arrow" aria-hidden="true">→</div>
-                <div class="diff-card diff-card--new">
-                  <div class="diff-card-head">Nilai baru</div>
-                  <div
-                    v-for="d in detailDiffs"
-                    :key="`n-${d.path}`"
-                    class="diff-field"
-                    :class="diffRowClass(d.kind)"
-                  >
-                    <span class="diff-field-lbl">{{ d.label }}</span>
-                    <div v-if="hasAuditImage(d) && d.newImageUrl" class="diff-field-val">
-                      <img :src="d.newImageUrl" alt="Foto baru" class="audit-photo-preview" />
+
+                  <div v-if="detailDisplayMode !== 'create'" class="diff-arrow" aria-hidden="true">
+                    <span class="diff-arrow-icon">→</span>
+                  </div>
+
+                  <div class="diff-card diff-card--new">
+                    <div class="diff-card-head diff-card-head--new">Nilai Baru</div>
+                    <div
+                      v-for="d in detailDiffs"
+                      :key="`n-${d.path}`"
+                      class="diff-field"
+                      :class="diffRowClass(d.kind)"
+                    >
+                      <span class="diff-field-lbl">{{ d.label }}</span>
+                      <div
+                        v-if="auditLinkLines(d.newDisplay).length"
+                        class="audit-proof-links diff-field-val"
+                      >
+                        <a
+                          v-for="(url, linkIdx) in auditLinkLines(d.newDisplay)"
+                          :key="`new-link-${linkIdx}`"
+                          :href="url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="audit-proof-link"
+                          @click.stop
+                        >{{ url }}</a>
+                      </div>
+                      <div v-else class="diff-field-val diff-field-val--new">{{ d.newDisplay || '—' }}</div>
                     </div>
-                    <div v-else class="diff-field-val">{{ d.newDisplay }}</div>
                   </div>
                 </div>
-              </div>
               </template>
             </section>
 
             <section class="detail-section detail-system">
-              <h3 class="detail-section-title">Catatan sistem</h3>
+              <h3 class="detail-section-title">Catatan Sistem</h3>
               <ul class="detail-system-list">
                 <li>Aktivitas ini tercatat otomatis oleh sistem ASIS.</li>
                 <li>Data audit log tidak dapat diubah atau dihapus oleh pengguna.</li>
@@ -616,9 +681,9 @@ onMounted(() => {
             </section>
           </div>
 
-          <div class="modal-footer-detail">
-            <button type="button" class="primary-btn modal-tutup" @click="closeDetail">Tutup</button>
-          </div>
+          <footer class="modal-footer-detail">
+            <button type="button" class="secondary-btn modal-tutup" @click="closeDetail">Tutup</button>
+          </footer>
         </div>
       </div>
     </Teleport>
@@ -654,7 +719,6 @@ onMounted(() => {
   font-size: 32px;
   font-weight: 600;
   margin: 0 0 4px;
-  font-family: 'Poppins', system-ui, sans-serif;
   color: #171717;
 }
 
@@ -686,72 +750,94 @@ onMounted(() => {
   color: #991b1b;
 }
 
-.filter-card {
-  background: #fff;
+/* Filter card — selaras dengan halaman Pengajuan Dana */
+.filter-card.card {
+  background-color: #ffffff;
   border-radius: 12px;
-  padding: 20px 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
-.filter-head {
+.filter-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 600;
-  color: #171717;
-  margin-bottom: 16px;
+  font-size: 14px;
+  color: #525252;
+}
+
+.filter-icon {
+  color: #525252;
+  flex-shrink: 0;
 }
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 16px;
 }
 
-.field-wide {
-  grid-column: 1 / -1;
+@media (max-width: 960px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.lbl {
-  display: block;
+@media (max-width: 520px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-card .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.filter-card .field label {
   font-size: 12px;
   font-weight: 600;
   color: #525252;
-  margin-bottom: 6px;
 }
 
-.inp {
+.filter-card .field input[type='date'],
+.filter-card .field select {
   width: 100%;
   height: 40px;
-  border: 1px solid #e5e5e5;
   border-radius: 8px;
-  padding: 0 12px;
-  font-family: inherit;
+  border: 1px solid #d4d4d4;
+  padding: 8px 12px;
   font-size: 14px;
+  color: #171717;
+  background-color: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
 }
 
-.search-wrap {
-  position: relative;
+.filter-card .field input[type='date']:focus,
+.filter-card .field select:focus {
+  border-color: #00c6ac;
+  box-shadow: 0 0 0 1px #00c6ac;
 }
 
-.search-ic {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
-
-.inp-search {
-  padding-left: 36px;
-}
-
-.filter-actions {
+.filter-bottom {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
-  margin-top: 20px;
+  align-items: center;
+}
+
+.filter-bottom--end {
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .primary-btn,
@@ -900,6 +986,10 @@ onMounted(() => {
 
 .dot-cancel {
   background: #94a3b8;
+}
+
+.dot-submit {
+  background: #3b82f6;
 }
 
 .dot-default {
@@ -1070,39 +1160,127 @@ onMounted(() => {
 }
 
 .modal-panel--detail {
-  max-width: 920px;
+  max-width: 880px;
+  border-radius: 16px;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .modal-head--detail {
   align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .modal-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   color: #171717;
 }
 
 .modal-id {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #737373;
+  color: #a3a3a3;
 }
 
 .detail-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 14px;
-  padding: 14px 20px;
+  gap: 8px 10px;
+  padding: 14px 24px;
   border-bottom: 1px solid #f0f0f0;
   background: #fafafa;
 }
 
-.detail-summary-meta {
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
   font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e5e5e5;
+  background: #fff;
   color: #404040;
+}
+
+.summary-chip--create {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.summary-chip--update {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.summary-chip--delete {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.summary-chip--review {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+}
+
+.summary-chip--approve {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.summary-chip--reject {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.summary-chip--cancel {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.summary-chip--submit {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.summary-chip--module {
+  background: #f5f5f5;
+  border-color: #e5e5e5;
+  color: #525252;
+  font-weight: 500;
+}
+
+.summary-chip--meta {
+  background: transparent;
+  border-color: transparent;
+  color: #525252;
+  font-weight: 500;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.summary-chip--meta svg {
+  color: #a3a3a3;
+  flex-shrink: 0;
+}
+
+.summary-chip--role {
+  background: #00c6ac;
+  border-color: #00c6ac;
+  color: #fff;
+  font-weight: 600;
 }
 
 .role-badge {
@@ -1118,79 +1296,103 @@ onMounted(() => {
 .modal-body-scroll {
   overflow-y: auto;
   flex: 1;
-  padding: 0 20px 16px;
+  padding: 8px 24px 20px;
 }
 
 .detail-section {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .detail-section-title {
-  margin: 0 0 12px;
-  font-size: 12px;
+  margin: 0 0 14px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #737373;
+  color: #a3a3a3;
+}
+
+.detail-info-panel {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 18px 20px;
 }
 
 .detail-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+@media (max-width: 720px) {
+  .detail-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-cell {
+  min-width: 0;
 }
 
 .info-lbl {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #9ca3af;
-  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+  color: #a3a3a3;
+  margin-bottom: 6px;
 }
 
 .info-val {
   margin: 0;
   font-size: 14px;
   color: #171717;
+  line-height: 1.4;
 }
 
-.diff-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 14px;
-  font-size: 12px;
-  color: #525252;
+.info-val--strong {
+  font-weight: 600;
 }
 
-.legend-item {
+.inline-action-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-weight: 600;
 }
 
-.legend-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  border: 1px solid #e5e5e5;
+.inline-module-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: #f5f5f5;
+  color: #525252;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.legend-swatch--changed {
-  background: #ccfbf1;
-  border-color: #99f6e4;
+.inline-role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #00c6ac;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.legend-swatch--added {
-  background: #dcfce7;
-  border-color: #bbf7d0;
-}
-
-.legend-swatch--removed {
-  background: #ffe4e6;
-  border-color: #fecdd3;
+.detail-desc-box {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #525252;
+  line-height: 1.55;
+  font-style: italic;
 }
 
 .diff-empty {
@@ -1205,8 +1407,8 @@ onMounted(() => {
 .diff-compare {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 12px;
-  align-items: start;
+  gap: 14px;
+  align-items: stretch;
 }
 
 @media (max-width: 720px) {
@@ -1220,33 +1422,61 @@ onMounted(() => {
 }
 
 .diff-arrow {
-  font-size: 22px;
-  color: #a3a3a3;
-  padding-top: 36px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.diff-arrow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: 1px solid #e5e5e5;
+  font-size: 16px;
+  color: #737373;
 }
 
 .diff-card {
-  border: 1px solid #e5e5e5;
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  min-height: 120px;
+}
+
+.diff-card--old {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.diff-card--new {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
 }
 
 .diff-card-head {
-  padding: 10px 14px;
-  font-size: 11px;
+  padding: 10px 16px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #737373;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
+  letter-spacing: 0.08em;
+  color: #92400e;
+  background: rgba(253, 230, 138, 0.35);
+  border-bottom: 1px solid #fde68a;
+}
+
+.diff-card-head--new {
+  color: #0f766e;
+  background: rgba(153, 246, 228, 0.35);
+  border-bottom-color: #99f6e4;
 }
 
 .diff-field {
-  padding: 10px 14px;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .diff-field:last-child {
@@ -1255,19 +1485,64 @@ onMounted(() => {
 
 .diff-field-lbl {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a3a3a3;
   margin-bottom: 6px;
 }
 
 .diff-field-val {
-  font-size: 13px;
-  color: #171717;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
   word-break: break-word;
 }
 
+.diff-field-val--old {
+  color: #92400e;
+  font-weight: 500;
+}
+
+.diff-field-val--new {
+  color: #0f766e;
+  font-weight: 500;
+}
+
+.diff-added .diff-field-val--new {
+  color: #15803d;
+}
+
+.diff-removed .diff-field-val--old {
+  color: #be123c;
+}
+
+.diff-unchanged .diff-field-val--old,
+.diff-unchanged .diff-field-val--new {
+  color: #525252;
+  font-weight: 400;
+}
+
+.audit-proof-link {
+  display: block;
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: underline;
+  word-break: break-all;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.audit-proof-link:hover {
+  color: #1d4ed8;
+}
+
+.audit-proof-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .audit-photo-pair {
   display: flex;
@@ -1289,71 +1564,88 @@ onMounted(() => {
   white-space: pre-line;
 }
 
-.diff-changed .diff-field-val {
-  background: #f0fdfa;
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
-.diff-unchanged .diff-field-val {
-  background: #f5f5f5;
-  padding: 8px 10px;
-  border-radius: 8px;
-  color: #525252;
-}
-
-.diff-added .diff-field-val {
-  background: #ecfdf5;
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
-.diff-removed .diff-field-val {
-  background: #fff1f2;
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-
 .diff-compare--create-only {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
 }
 
-.diff-card--empty {
-  min-height: 120px;
+.diff-compare--create-only .diff-card--old {
+  display: none;
 }
 
-.diff-card-empty-body {
-  min-height: 72px;
-  margin: 8px 14px 14px;
+.diff-compare--create-only .diff-arrow {
+  display: none;
+}
+
+.diff-card--empty .diff-card-empty-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  margin: 12px 16px 16px;
   border-radius: 8px;
-  background: #fafafa;
-  border: 1px dashed #e5e5e5;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px dashed #fde68a;
 }
 
-.user-deactivate-card {
-  border: 1px solid #fecdd3;
+.diff-card-empty-hint {
+  font-size: 13px;
+  color: #a8a29e;
+  font-style: italic;
+}
+
+.detail-event-card {
+  border: 1px solid #e5e5e5;
   border-radius: 12px;
-  padding: 16px 18px;
-  background: #fff1f2;
+  padding: 18px 20px;
+  background: #fafafa;
 }
 
-.user-deactivate-title {
-  margin: 0 0 14px;
-  font-size: 14px;
-  font-weight: 700;
+.detail-event-card--delete {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.detail-event-card--delete .detail-event-card__title {
   color: #9f1239;
 }
 
-.user-deactivate-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #ffe4e6;
+.detail-event-card--delete .detail-event-card__row {
+  border-bottom-color: #ffe4e6;
 }
 
-.user-deactivate-row:last-child {
+.detail-event-card--delete .diff-field-lbl {
+  color: #be123c;
+}
+
+.detail-event-card--delete .detail-event-card__value,
+.detail-event-card--delete .diff-field-val {
+  color: #881337;
+}
+
+.detail-event-card__title {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #171717;
+}
+
+.detail-event-card__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 38%) 1fr;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: start;
+}
+
+.detail-event-card__row:last-child {
   border-bottom: none;
+}
+
+.detail-event-card__value {
+  font-size: 14px;
+  color: #404040;
+  line-height: 1.5;
 }
 
 .detail-system {
@@ -1362,23 +1654,32 @@ onMounted(() => {
 
 .detail-system-list {
   margin: 0;
-  padding: 14px 18px 14px 28px;
+  padding: 16px 20px 16px 32px;
   background: #f5f5f5;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
   font-size: 13px;
   color: #525252;
-  line-height: 1.6;
+  line-height: 1.65;
+}
+
+.detail-system-list li {
+  margin-bottom: 4px;
+}
+
+.detail-system-list li:last-child {
+  margin-bottom: 0;
 }
 
 .modal-footer-detail {
   display: flex;
   justify-content: flex-end;
-  padding: 14px 20px;
+  padding: 16px 24px;
   border-top: 1px solid #f0f0f0;
   background: #fff;
 }
 
 .modal-tutup {
-  min-width: 120px;
+  min-width: 100px;
 }
 </style>
