@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { usePaymentRequestStore } from '@/stores/payment-request.store'
 import { isKetua, isPengurus } from '@/lib/rbac'
 import { getCurrentUser } from '@/lib/auth'
@@ -9,6 +9,7 @@ import PaymentRequestCancelConfirmModal from '@/components/PaymentRequestCancelC
 
 const store = usePaymentRequestStore()
 const router = useRouter()
+const route = useRoute()
 const userIsPengurus = computed(() => isPengurus())
 const userIsKetua = computed(() => isKetua())
 const currentUsername = computed(() => (getCurrentUser()?.username || '').toLowerCase())
@@ -49,6 +50,26 @@ const endDate = ref<string>('')
 const expenseCategory = ref<string>('')
 const status = ref<string>('')
 const search = ref<string>('')
+
+function getQueryParam(key: string): string {
+  const value = route.query[key]
+  if (Array.isArray(value)) return value[0] ?? ''
+  return typeof value === 'string' ? value : ''
+}
+
+function applyQueryFilters() {
+  const start = getQueryParam('startDate')
+  const end = getQueryParam('endDate')
+  const category = getQueryParam('expenseCategory')
+  const statusQuery = getQueryParam('status')
+  const searchQuery = getQueryParam('search')
+
+  if (start) startDate.value = start
+  if (end) endDate.value = end
+  if (category) expenseCategory.value = category
+  if (statusQuery) status.value = statusQuery
+  if (searchQuery) search.value = searchQuery
+}
 
 const categoryLabel: Record<string, string> = {
   OPERASIONAL: 'Operasional',
@@ -150,7 +171,8 @@ const hasFilter = computed(
 )
 
 onMounted(() => {
-  fetchData()
+  applyQueryFilters()
+  fetchData(0)
 })
 </script>
 
