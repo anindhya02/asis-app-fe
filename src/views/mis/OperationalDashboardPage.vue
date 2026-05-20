@@ -60,6 +60,22 @@ function formatTime(d: Date | null): string {
   return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
 }
 
+function formatDateInput(date: Date): string {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function getPeriodRange() {
+  const start = new Date(year.value, month.value - 1, 1)
+  const end = new Date(year.value, month.value, 0)
+  return {
+    startDate: formatDateInput(start),
+    endDate: formatDateInput(end),
+  }
+}
+
 const totalFundIn = computed(() => parseAmount(data.value?.totalFundIn))
 const totalFundOut = computed(() => parseAmount(data.value?.totalFundOut))
 const runningBalance = computed(() => parseAmount(data.value?.runningBalance))
@@ -189,8 +205,11 @@ async function handleRetry() {
   await fetchDashboard()
 }
 
-function goToTickets() {
-  router.push('/pengajuandana')
+function goToTickets(status?: string) {
+  const { startDate, endDate } = getPeriodRange()
+  const query: Record<string, string> = { startDate, endDate }
+  if (status) query.status = status
+  router.push({ path: '/pengajuandana', query })
 }
 
 watch(autoRefresh, (enabled) => {
@@ -491,6 +510,7 @@ onBeforeUnmount(() => {
                   <span class="status-count">{{ ticketSummary?.approved ?? 0 }}</span>
                   <span class="status-label">Approved</span>
                   <span class="status-helper">Telah disetujui</span>
+                  <button type="button" class="status-link" @click="goToTickets('APPROVED')">Lihat</button>
                 </div>
                 <div class="status-card status-reject">
                   <div class="status-icon">
@@ -504,6 +524,7 @@ onBeforeUnmount(() => {
                   <span class="status-count">{{ ticketSummary?.reject ?? 0 }}</span>
                   <span class="status-label">Rejected</span>
                   <span class="status-helper">Ditolak</span>
+                  <button type="button" class="status-link" @click="goToTickets('REJECTED')">Lihat</button>
                 </div>
                 <div class="status-card status-pending">
                   <div class="status-icon">
@@ -516,7 +537,7 @@ onBeforeUnmount(() => {
                   <span class="status-count">{{ ticketSummary?.pending ?? 0 }}</span>
                   <span class="status-label">Pending Review</span>
                   <span class="status-helper">Menunggu review</span>
-                  <button type="button" class="status-link" @click="goToTickets">Lihat</button>
+                  <button type="button" class="status-link" @click="goToTickets('PENDING_REVIEW')">Lihat</button>
                 </div>
                 <div class="status-card status-revision">
                   <div class="status-icon">
@@ -529,7 +550,7 @@ onBeforeUnmount(() => {
                   <span class="status-count">{{ ticketSummary?.revisionRequested ?? 0 }}</span>
                   <span class="status-label">Revision Requested</span>
                   <span class="status-helper">Perlu diperbaiki</span>
-                  <button type="button" class="status-link" @click="goToTickets">Lihat</button>
+                  <button type="button" class="status-link" @click="goToTickets('REVISION_REQUESTED')">Lihat</button>
                 </div>
               </div>
             </section>
