@@ -431,8 +431,9 @@ GitHub.sublime-settings
 .Python
 [Bb]in
 [Ii]nclude
-[Ll]ib
-[Ll]ib64
+# Hanya lib di root (venv). Jangan pakai [Ll]ib — ikut mengabaikan src/lib/.
+/lib/
+/lib64/
 [Ll]ocal
 [Ss]cripts
 pyvenv.cfg
