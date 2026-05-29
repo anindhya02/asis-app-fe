@@ -351,11 +351,12 @@ async function handleSave() {
 }
 
 .modal-title {
-  font-family: 'Poppins';
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.01em;
+  margin: 0;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #171717;
+  line-height: 1.25;
 }
 
 .close-btn {

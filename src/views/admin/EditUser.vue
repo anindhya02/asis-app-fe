@@ -64,24 +64,16 @@ watch(
 function validate() {
   const e: Record<string, string> = {}
 
-  if (!nama.value.trim()) e.nama = 'Nama harus diisi'
-  if (!username.value.trim()) e.username = 'Username harus diisi'
-  if (!role.value) e.role = 'Role harus dipilih'
+  if (!password.value) {
+    e.password = 'Password baru harus diisi'
+  } else if (password.value.length < 8) {
+    e.password = 'Password minimal 8 karakter'
+  }
 
-  const hasPassword = Boolean(password.value)
-  const hasConfirm = Boolean(confirmPassword.value)
-  if (hasPassword || hasConfirm) {
-    if (!hasPassword) {
-      e.password = 'Password baru harus diisi'
-    } else if (password.value.length < 8) {
-      e.password = 'Password minimal 8 karakter'
-    }
-
-    if (!hasConfirm) {
-      e.confirmPassword = 'Konfirmasi password harus diisi'
-    } else if (password.value !== confirmPassword.value) {
-      e.confirmPassword = 'Password tidak sama'
-    }
+  if (!confirmPassword.value) {
+    e.confirmPassword = 'Konfirmasi password harus diisi'
+  } else if (password.value !== confirmPassword.value) {
+    e.confirmPassword = 'Password tidak sama'
   }
 
   return e
@@ -105,16 +97,15 @@ async function handleSave() {
 
   try {
     await userStore.updateUser(props.user.userId, {
-      nama: nama.value.trim(),
-      username: username.value.trim(),
-      role: role.value,
-      ...(password.value
-        ? { newPassword: password.value, confirmPassword: confirmPassword.value }
-        : {}),
+      nama: props.user.nama,
+      username: props.user.username,
+      role: props.user.role,
+      newPassword: password.value,
+      confirmPassword: confirmPassword.value,
     })
 
-    successTitle.value = 'User berhasil diperbarui!'
-    successMessage.value = 'Perubahan data pengguna sudah tersimpan.'
+    successTitle.value = 'Password berhasil diperbarui!'
+    successMessage.value = 'Password pengguna sudah tersimpan.'
     showSuccessPopup.value = true
     emit('saved')
     handleClose()
@@ -144,7 +135,7 @@ async function handleSave() {
       <div v-if="isOpen && user" class="overlay" @mousedown.self="handleClose">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div class="modal-header">
-            <h3 id="modal-title" class="modal-title">Edit Akun Pengguna</h3>
+            <h3 id="modal-title" class="modal-title">Ubah Password Pengguna</h3>
             <button class="close-btn" @click="handleClose" aria-label="Tutup">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -153,28 +144,34 @@ async function handleSave() {
           </div>
 
           <div class="modal-body">
+            <p class="modal-hint">Nama, username, dan role tidak dapat diubah. Isi password baru untuk memperbarui akun.</p>
+
             <div class="field">
               <label class="field-label">Name</label>
-              <input v-model="nama" type="text" placeholder="Masukkan nama lengkap" class="field-input" :class="{ 'field-input--error': errors.nama }" @input="delete errors.nama" />
-              <span v-if="errors.nama" class="field-error">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {{ errors.nama }}
-              </span>
+              <input
+                v-model="nama"
+                type="text"
+                class="field-input field-input--disabled"
+                disabled
+                readonly
+              />
             </div>
 
             <div class="field">
               <label class="field-label">Username</label>
-              <input v-model="username" type="text" placeholder="Masukkan username" class="field-input" :class="{ 'field-input--error': errors.username }" @input="delete errors.username" />
-              <span v-if="errors.username" class="field-error">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {{ errors.username }}
-              </span>
+              <input
+                v-model="username"
+                type="text"
+                class="field-input field-input--disabled"
+                disabled
+                readonly
+              />
             </div>
 
             <div class="field">
               <label class="field-label">Role</label>
               <div class="select-wrap">
-                <select v-model="role" class="field-input field-select" :class="{ 'field-input--error': errors.role }" @change="delete errors.role">
+                <select v-model="role" class="field-input field-select field-input--disabled" disabled>
                   <option value="" disabled>Masukkan role</option>
                   <option value="Admin">Admin</option>
                   <option value="Ketua Yayasan">Ketua Yayasan</option>
@@ -183,16 +180,12 @@ async function handleSave() {
                 </select>
                 <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
-              <span v-if="errors.role" class="field-error">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {{ errors.role }}
-              </span>
             </div>
 
             <div class="field">
               <label class="field-label">Password Baru</label>
               <div class="input-wrap">
-                <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Kosongkan jika tidak ingin ganti password" class="field-input field-input--icon-right" :class="{ 'field-input--error': errors.password }" @input="delete errors.password" />
+                <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Masukkan password baru" class="field-input field-input--icon-right" :class="{ 'field-input--error': errors.password }" @input="delete errors.password" />
                 <button class="eye-btn" type="button" @click="showPassword = !showPassword">
                   <svg v-if="!showPassword" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -284,11 +277,12 @@ async function handleSave() {
 }
 
 .modal-title {
-  font-family: 'Poppins';
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.01em;
+  margin: 0;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #171717;
+  line-height: 1.25;
 }
 
 .close-btn {
@@ -343,7 +337,24 @@ async function handleSave() {
 }
 .field-input--error { border-color: #ef4444; }
 .field-input--error:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+.field-input--disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+.field-input--disabled:focus {
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
 .field-input--icon-right { padding-right: 44px; }
+
+.modal-hint {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
 
 .select-wrap { position: relative; width: 100%; }
 .field-select { appearance: none; cursor: pointer; }
