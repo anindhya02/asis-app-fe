@@ -320,13 +320,11 @@ onMounted(() => {
     <AsisSidebar />
 
     <main class="content">
-      <header class="page-head">
-        <div>
-          <h1 class="page-title">Audit Log</h1>
-          <p class="page-subtitle">
-            Pantau riwayat aktivitas dan perubahan data penting di seluruh sistem.
-          </p>
-        </div>
+      <header class="content-header">
+        <h1 class="page-title">Audit Log</h1>
+        <p class="page-subtitle">
+          Pantau riwayat aktivitas dan perubahan data penting di seluruh sistem.
+        </p>
       </header>
 
       <div class="alert alert-warn">
@@ -711,14 +709,15 @@ onMounted(() => {
   margin-right: auto;
 }
 
-.page-head {
-  margin-bottom: 20px;
+.content-header {
+  margin-bottom: 24px;
 }
 
 .page-title {
   font-size: 32px;
   font-weight: 600;
   margin: 0 0 4px;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #171717;
 }
 
