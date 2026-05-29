@@ -55,6 +55,7 @@ const paginated = computed(() => {
 
 const hasFilter = computed(() => !!(search.value || startDate.value || endDate.value || category.value))
 const canManageActivity = computed(() => isAdmin() || isPengurus())
+const pageTitle = computed(() => (canManageActivity.value ? 'Kelola Postingan Kegiatan' : 'Daftar Postingan Kegiatan'))
 
 watch(viewMode, () => {
   currentPage.value = 1
@@ -187,7 +188,7 @@ onBeforeUnmount(() => {
     <main class="content">
       <header class="content-header">
         <div>
-          <h1 class="page-title">Kelola Postingan Kegiatan</h1>
+          <h1 class="page-title">{{ pageTitle }}</h1>
           <p class="page-subtitle">Dokumentasikan dan publikasikan kegiatan yayasan</p>
         </div>
       </header>

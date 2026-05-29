@@ -242,15 +242,6 @@ onBeforeUnmount(() => {
       <UnauthorizedAccess v-if="!isAuthorized" mode="content" />
 
       <div class="page">
-        <div class="breadcrumb">
-          <span class="breadcrumb-muted">Dashboard</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-          <span class="breadcrumb-current">Dashboard Operasional</span>
-        </div>
-
         <header class="page-header">
           <div>
             <h1 class="page-title">Dashboard Operasional</h1>
@@ -609,7 +600,7 @@ onBeforeUnmount(() => {
 .page-title {
   font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 600;
-  font-size: 26px;
+  font-size: 32px;
   color: #171717;
   margin: 0 0 6px;
 }
